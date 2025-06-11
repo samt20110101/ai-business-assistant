@@ -205,7 +205,7 @@ with st.sidebar:
     st.title("🎛️ Navigation")
     page = st.selectbox(
         "Choose Section:",
-        ["Dashboard", "AI Chat", "Analytics", "Compliance", "Settings"]
+        ["Dashboard", "AI Chat", "Analytics", "Compliance", "Data Viewer", "Settings"]
     )
     
     st.markdown("---")
@@ -438,6 +438,82 @@ elif page == "Analytics":
                       color='Type', title="Revenue & Expense Predictions",
                       line_dash='Type')
     st.plotly_chart(fig_pred, use_container_width=True)
+
+elif page == "Data Viewer":
+    st.header("📋 Demo Data Viewer")
+    
+    st.info("This shows the actual demo data being used in the application")
+    
+    # Revenue & Expense Data
+    st.subheader("💰 Financial Data (Last 6 Months)")
+    financial_df = pd.DataFrame({
+        'Month': st.session_state.business_data['months'],
+        'Revenue (RM)': st.session_state.business_data['revenue'],
+        'Expenses (RM)': st.session_state.business_data['expenses']
+    })
+    financial_df['Net Profit (RM)'] = financial_df['Revenue (RM)'] - financial_df['Expenses (RM)']
+    financial_df['Profit Margin (%)'] = ((financial_df['Net Profit (RM)'] / financial_df['Revenue (RM)']) * 100).round(1)
+    
+    st.dataframe(financial_df, use_container_width=True)
+    
+    # Customer Data
+    st.subheader("🎯 Customer Portfolio")
+    customers_df = pd.DataFrame(st.session_state.business_data['customers'])
+    customers_df['Revenue (RM)'] = customers_df['revenue']
+    customers_df['Margin (%)'] = customers_df['margin']
+    customers_df['Region'] = customers_df['region']
+    customers_df['Customer Name'] = customers_df['name']
+    display_customers = customers_df[['Customer Name', 'Region', 'Revenue (RM)', 'Margin (%)']].copy()
+    
+    st.dataframe(display_customers, use_container_width=True)
+    
+    # Expense Breakdown
+    st.subheader("📊 Current Month Expense Breakdown")
+    expense_df = pd.DataFrame(
+        list(st.session_state.business_data['expenses_breakdown'].items()),
+        columns=['Category', 'Amount (RM)']
+    )
+    expense_df['Percentage'] = ((expense_df['Amount (RM)'] / expense_df['Amount (RM)'].sum()) * 100).round(1)
+    
+    st.dataframe(expense_df, use_container_width=True)
+    
+    # Compliance Data
+    st.subheader("⚖️ Malaysian Compliance Status")
+    compliance_data = []
+    for key, value in st.session_state.business_data['compliance'].items():
+        compliance_data.append({
+            'Item': key.replace('_', ' ').title(),
+            'Status/Date': value
+        })
+    compliance_df = pd.DataFrame(compliance_data)
+    
+    st.dataframe(compliance_df, use_container_width=True)
+    
+    # Summary Stats
+    st.subheader("📈 Key Metrics Summary")
+    col1, col2, col3 = st.columns(3)
+    
+    current_revenue = st.session_state.business_data['revenue'][-1]
+    current_expenses = st.session_state.business_data['expenses'][-1]
+    total_customers = len(st.session_state.business_data['customers'])
+    total_customer_revenue = sum([c['revenue'] for c in st.session_state.business_data['customers']])
+    
+    with col1:
+        st.metric("Total Customers", total_customers)
+        st.metric("Customer Revenue Coverage", f"{(total_customer_revenue/current_revenue*100):.1f}%")
+    
+    with col2:
+        st.metric("Avg Revenue/Customer", f"RM {total_customer_revenue/total_customers:,.0f}")
+        st.metric("Revenue Growth", f"{((current_revenue/st.session_state.business_data['revenue'][0])-1)*100:.1f}%")
+    
+    with col3:
+        avg_margin = sum([c['margin'] for c in st.session_state.business_data['customers']]) / total_customers
+        st.metric("Avg Customer Margin", f"{avg_margin:.1f}%")
+        st.metric("Best Customer Margin", f"{max([c['margin'] for c in st.session_state.business_data['customers']]):.1f}%")
+    
+    # Raw Data (Expandable)
+    with st.expander("🔍 View Raw Data (JSON)"):
+        st.json(st.session_state.business_data)
 
 elif page == "Compliance":
     st.header("📋 Malaysian Compliance Dashboard")
