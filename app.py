@@ -388,32 +388,78 @@ elif page == "AI Chat":
         
         if gemini_model:
             try:
-                # Prepare business data context for Gemini
-                business_context = f"""
-                You are an AI Business Assistant for a Malaysian SME. Here's the current business data:
+                # Create context with business data  
+                context = f"""
+                You are a Malaysian business intelligence assistant with ADVANCED CHARTING CAPABILITIES. You can create interactive charts for ANY business data automatically.
 
-                FINANCIAL DATA (Last 6 months):
-                {st.session_state.business_data['months'][-6:]} 
-                Revenue: {st.session_state.business_data['revenue'][-6:]}
-                Expenses: {st.session_state.business_data['expenses'][-6:]}
+                CHART COMMAND: When users request ANY type of chart/graph/visualization, use this format:
+                CHART_REQUEST:[chart_type]|[data_focus]|[description]
 
-                CUSTOMER DATA:
-                {json.dumps(st.session_state.business_data['customers'], indent=2)}
+                Chart Types Available:
+                - pie: For breakdowns, distributions, percentages
+                - bar: For comparisons between categories
+                - line: For trends over time
+                - area: For cumulative trends, filled areas
 
-                EXPENSE BREAKDOWN (Current month):
-                {json.dumps(st.session_state.business_data['expenses_breakdown'], indent=2)}
+                Data Categories You Can Chart:
+                - CUSTOMERS: Revenue by customer, customer distribution
+                - EXPENSES: Cost breakdown, expense categories  
+                - REVENUE: Monthly trends, sales over time
+                - REGIONS: Geographic revenue distribution
+                - PROFIT MARGINS: Profitability trends over time
+                - Any other business metric requested
 
-                COMPLIANCE STATUS:
-                {json.dumps(st.session_state.business_data['compliance'], indent=2)}
-
-                Current month (Jan 2025): Revenue RM {st.session_state.business_data['revenue'][-1]:,}, Expenses RM {st.session_state.business_data['expenses'][-1]:,}
-
-                Please answer this business question with specific insights based on the actual data above. Be concise, actionable, and use Malaysian business context. Include specific numbers and recommendations.
-
-                Question: {question}
+                COMPANY DATA AVAILABLE:
+                
+                FINANCIAL METRICS:
+                Monthly Revenue: RM 130,000 (↑10.2%)
+                Operating Expenses: RM 88,000 (↓3.3%)  
+                Net Profit: RM 42,000 (↑55.6%)
+                Profit Margin: 32.3% (↑4.2%)
+                
+                CUSTOMER REVENUE:
+                - ABC Trading Sdn Bhd: RM 45,000 (34.6%)
+                - XYZ Manufacturing: RM 38,000 (29.2%)
+                - DEF Industries: RM 25,000 (19.2%)
+                - GHI Solutions: RM 17,430 (13.4%)
+                - Others: RM 4,570 (3.5%)
+                
+                EXPENSE CATEGORIES:
+                - Staff Costs: RM 35,000 (39.2%)
+                - Marketing: RM 15,000 (16.8%)
+                - Rent: RM 12,000 (13.5%)
+                - Supplies: RM 11,000 (12.3%)
+                - Utilities: RM 8,000 (9.0%)
+                - Insurance: RM 7,000 (9.2%)
+                
+                REGIONAL REVENUE:
+                - KL: RM 45,000
+                - Selangor: RM 35,000
+                - Penang: RM 25,000
+                - Johor: RM 15,000
+                - Others: RM 10,000
+                
+                MONTHLY TRENDS (Aug 2024 - Jan 2025):
+                Aug: Revenue RM95k, Expenses RM78k, Profit RM17k, Margin 17.9%
+                Sep: Revenue RM105k, Expenses RM82k, Profit RM23k, Margin 21.9%
+                Oct: Revenue RM98k, Expenses RM85k, Profit RM13k, Margin 13.3%
+                Nov: Revenue RM125k, Expenses RM89k, Profit RM36k, Margin 28.9%
+                Dec: Revenue RM118k, Expenses RM91k, Profit RM27k, Margin 22.9%
+                Jan: Revenue RM130k, Expenses RM88k, Profit RM42k, Margin 32.3%
+                
+                USER REQUEST: {question}
+                
+                EXAMPLES OF WHAT YOU CAN CHART:
+                - "Show regional sales" → CHART_REQUEST:bar|regions|Regional revenue comparison
+                - "Profit margin trends" → CHART_REQUEST:line|profit_margins|Monthly profit margin trends
+                - "Customer pie chart" → CHART_REQUEST:pie|customers|Customer revenue distribution
+                - "Expense breakdown" → CHART_REQUEST:pie|expenses|Operating expense categories
+                - "Monthly revenue trends" → CHART_REQUEST:line|revenue_trend|Revenue and expense trends
+                
+                CRITICAL: Always include the CHART_REQUEST if they want ANY visualization, then provide analysis!
                 """
                 
-                response = gemini_model.generate_content(business_context)
+                response = gemini_model.generate_content(context)
                 return f"🤖 {response.text}"
                 
             except Exception as e:
@@ -489,10 +535,47 @@ elif page == "AI Chat":
     
     if st.button("Send") and user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
+        
+        # Get AI response
         response = get_ai_response(user_input)
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
-        # Save to Firebase
-        save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
+        
+        # Process the response
+        if response:
+            # Check if AI requested a chart
+            if "CHART_REQUEST:" in response:
+                lines = response.split('\n')
+                chart_line = next((line for line in lines if line.startswith("CHART_REQUEST:")), None)
+                
+                if chart_line:
+                    try:
+                        # Parse chart request: CHART_REQUEST:[type]|[title]|[description]
+                        chart_info = chart_line.replace("CHART_REQUEST:", "").strip()
+                        chart_parts = chart_info.split('|')
+                        chart_type = chart_parts[0].strip() if chart_parts else "line"
+                        
+                        st.info(f"🎨 Creating {chart_type} chart based on your request...")
+                        
+                        # Create and display chart
+                        fig = create_chart_from_request(chart_info, chart_type)
+                        if fig:
+                            st.plotly_chart(fig, use_container_width=True)
+                            st.success("✅ Chart created successfully!")
+                        
+                        # Display text response without the CHART_REQUEST line
+                        text_response = '\n'.join([line for line in lines if not line.startswith("CHART_REQUEST:")])
+                        if text_response.strip():
+                            st.markdown(f"**AI Assistant:** {text_response}")
+                    except Exception as e:
+                        st.error(f"Chart creation error: {e}")
+                        st.markdown(f"**AI Assistant:** {response}")
+            else:
+                st.markdown(f"**AI Assistant:** {response}")
+            
+            # Add to history
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+            # Save to Firebase
+            save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
+        
         st.rerun()
 
 elif page == "Analytics":
