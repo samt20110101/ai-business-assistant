@@ -130,12 +130,25 @@ def init_gemini():
             st.sidebar.write(f"🔍 Debug: API key found, length: {len(api_key)}")
             
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-pro')
             
-            # Test the connection
-            test_response = model.generate_content("Hello")
-            st.sidebar.success("✅ Gemini test successful!")
-            return model
+            # Try different model names
+            try:
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                # Test the connection
+                test_response = model.generate_content("Hello")
+                st.sidebar.success("✅ Gemini 1.5 Flash connected!")
+                return model
+            except:
+                try:
+                    model = genai.GenerativeModel('gemini-1.5-pro')
+                    test_response = model.generate_content("Hello")
+                    st.sidebar.success("✅ Gemini 1.5 Pro connected!")
+                    return model
+                except:
+                    model = genai.GenerativeModel('gemini-pro')
+                    test_response = model.generate_content("Hello")
+                    st.sidebar.success("✅ Gemini Pro connected!")
+                    return model
         else:
             st.sidebar.warning("⚠️ gemini_api_key not found in secrets")
             return None
