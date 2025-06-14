@@ -734,10 +734,12 @@ elif page == "AI Chat":
                 if chart_type:
                     st.info(f"📊 Creating {chart_type.replace('_', ' ').title()} chart...")
                     display_chart(chart_type, f"Generated from: {data_focus}")
+                    st.rerun()  # Add rerun to refresh display
             else:
                 # Default chart if no recent chart request
                 st.info("📈 Creating default revenue trend chart...")
                 display_chart('revenue_trend', "Default chart - ask for specific charts in chat!")
+                st.rerun()  # Add rerun to refresh display
     
     with col4:
         if st.button("🔄 Clear Charts"):
