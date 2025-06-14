@@ -565,8 +565,12 @@ elif page == "AI Chat":
             # Clean response (remove emojis that might interfere)
             clean_response = response.replace("🤖", "").strip()
             
+            # Debug output to see what we're getting
+            st.write(f"**DEBUG:** Looking for CHART_REQUEST in response...")
+            st.write(f"**First 200 chars:** {clean_response[:200]}")
+            
             if "CHART_REQUEST:" in clean_response:
-                st.info("🎨 Chart request detected! Creating visualization...")
+                st.success("✅ CHART_REQUEST detected!")
                 
                 try:
                     # Find the CHART_REQUEST line
@@ -574,8 +578,10 @@ elif page == "AI Chat":
                     chart_line = None
                     for line in lines:
                         if "CHART_REQUEST:" in line:
-                            chart_line = line
+                            chart_line = line.strip()
                             break
+                    
+                    st.write(f"**Chart line found:** {chart_line}")
                     
                     if chart_line:
                         # Parse: CHART_REQUEST:type|data|description
@@ -585,20 +591,23 @@ elif page == "AI Chat":
                         
                         st.info(f"🎨 Creating {chart_type} chart...")
                         
-                        # Create chart based on type and request
-                        if chart_type == "line" and any(word in user_input.lower() for word in ['revenue', 'expense', 'profit', 'trend']):
+                        # Import plotly here to ensure it's available
+                        import plotly.graph_objects as go
+                        
+                        if chart_type == "line":
                             # Multi-line chart for revenue/expenses/profit
-                            import plotly.graph_objects as go
-                            
                             months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
                             revenue = [95000, 105000, 98000, 125000, 118000, 130000]
                             expenses = [78000, 82000, 85000, 89000, 91000, 88000]
                             profit = [17000, 23000, 13000, 36000, 27000, 42000]
                             
                             fig = go.Figure()
-                            fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', line=dict(color='#00D4AA', width=3)))
-                            fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', line=dict(color='#FF6B6B', width=3)))
-                            fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', line=dict(color='#4ECDC4', width=3)))
+                            fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', 
+                                                   name='Revenue', line=dict(color='#00D4AA', width=3)))
+                            fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', 
+                                                   name='Expenses', line=dict(color='#FF6B6B', width=3)))
+                            fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', 
+                                                   name='Profit', line=dict(color='#4ECDC4', width=3)))
                             
                             fig.update_layout(
                                 title="📈 Revenue, Expenses & Profit Trends",
@@ -608,24 +617,11 @@ elif page == "AI Chat":
                                 height=400
                             )
                             
-                        elif chart_type == "pie" and "customer" in user_input.lower():
-                            # Customer pie chart
-                            import plotly.graph_objects as go
+                            st.plotly_chart(fig, use_container_width=True)
+                            st.success("✅ Line chart created successfully!")
                             
-                            labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
-                            values = [45000, 38000, 25000, 17430, 4570]
-                            colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
-                            
-                            fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker_colors=colors)])
-                            fig.update_layout(
-                                title="💼 Customer Revenue Distribution",
-                                template="plotly_dark",
-                                height=500
-                            )
                         else:
-                            # Default to customer pie chart
-                            import plotly.graph_objects as go
-                            
+                            # Default pie chart
                             labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
                             values = [45000, 38000, 25000, 17430, 4570]
                             colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
@@ -636,10 +632,9 @@ elif page == "AI Chat":
                                 template="plotly_dark",
                                 height=500
                             )
-                        
-                        # Display the chart
-                        st.plotly_chart(fig, use_container_width=True)
-                        st.success("✅ Chart created successfully!")
+                            
+                            st.plotly_chart(fig, use_container_width=True)
+                            st.success("✅ Pie chart created successfully!")
                         
                         # Display text response without CHART_REQUEST line
                         text_lines = [line for line in lines if "CHART_REQUEST:" not in line]
@@ -648,9 +643,11 @@ elif page == "AI Chat":
                             st.markdown(f"**AI Assistant:** {text_response}")
                     
                 except Exception as e:
-                    st.error(f"Chart creation error: {e}")
+                    st.error(f"❌ Chart creation error: {str(e)}")
+                    st.write(f"Error details: {e}")
                     st.markdown(f"**AI Assistant:** {response}")
             else:
+                st.info("ℹ️ No CHART_REQUEST found in response")
                 st.markdown(f"**AI Assistant:** {response}")
             
             # Add to history
