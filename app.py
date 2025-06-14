@@ -733,13 +733,15 @@ elif page == "AI Chat":
                 chart_type, data_focus, description = parse_chart_request(latest_chart_request)
                 if chart_type:
                     st.info(f"📊 Creating {chart_type.replace('_', ' ').title()} chart...")
-                    display_chart(chart_type, f"Generated from: {data_focus}")
-                    st.rerun()  # Add rerun to refresh display
+                    st.session_state.current_chart_type = chart_type
+                    st.session_state.chart_timestamp = int(time.time())
+                    st.rerun()
             else:
                 # Default chart if no recent chart request
                 st.info("📈 Creating default revenue trend chart...")
-                display_chart('revenue_trend', "Default chart - ask for specific charts in chat!")
-                st.rerun()  # Add rerun to refresh display
+                st.session_state.current_chart_type = 'revenue_trend'
+                st.session_state.chart_timestamp = int(time.time())
+                st.rerun()
     
     with col4:
         if st.button("🔄 Clear Charts"):
@@ -751,7 +753,32 @@ elif page == "AI Chat":
     # Display current chart if exists
     if st.session_state.current_chart_type:
         st.markdown("### 📊 Current Chart")
-        display_chart(st.session_state.current_chart_type)
+        
+        chart_functions = {
+            'profit_margin': create_profit_margin_chart,
+            'customer_pie': create_customer_pie_chart,
+            'expense_pie': create_expense_pie_chart,
+            'regional_bar': create_regional_bar_chart,
+            'revenue_trend': create_revenue_trend_chart
+        }
+        
+        if st.session_state.current_chart_type in chart_functions:
+            try:
+                fig = chart_functions[st.session_state.current_chart_type]()
+                st.plotly_chart(fig, use_container_width=True, key=f"current_chart_{st.session_state.chart_timestamp}")
+                
+                success_messages = {
+                    'profit_margin': "✅ Profit margin chart - Shows improvement from 17.9% to 32.3%",
+                    'customer_pie': "✅ Customer pie chart - ABC Trading leads with 34.6% of revenue",
+                    'expense_pie': "✅ Expense breakdown - Staff costs are the largest expense at 39.2%",
+                    'regional_bar': "✅ Regional bar chart - KL leads with RM 45,000 revenue",
+                    'revenue_trend': "✅ Multi-line trend chart - Shows revenue growth and profit improvement"
+                }
+                
+                st.success(success_messages.get(st.session_state.current_chart_type, "✅ Chart displayed successfully!"))
+                
+            except Exception as e:
+                st.error(f"❌ Chart display failed: {e}")
     
     # Chat history display
     st.markdown("### 💬 Conversation")
@@ -781,7 +808,8 @@ elif page == "AI Chat":
             chart_type, data_focus, description = parse_chart_request(response)
             if chart_type:
                 st.success("🎉 Chart request detected! Creating visualization...")
-                display_chart(chart_type, f"Generated from: {data_focus}")
+                st.session_state.current_chart_type = chart_type
+                st.session_state.chart_timestamp = int(time.time())
         
         # Add AI response to history
         st.session_state.chat_history.append({"role": "assistant", "content": response})
