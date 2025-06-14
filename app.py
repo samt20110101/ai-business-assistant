@@ -560,101 +560,55 @@ elif page == "AI Chat":
         # Get AI response
         response = get_ai_response(user_input)
         
-        # Process the response for charts
-        if response:
-            # Clean response (remove emojis that might interfere)
-            clean_response = response.replace("🤖", "").strip()
+        # SIMPLE CHART PROCESSING
+        if response and "CHART_REQUEST:" in response:
+            st.success("🎉 CHART DETECTED - Creating visualization...")
             
-            # Debug output to see what we're getting
-            st.write(f"**DEBUG:** Looking for CHART_REQUEST in response...")
-            st.write(f"**First 200 chars:** {clean_response[:200]}")
-            
-            if "CHART_REQUEST:" in clean_response:
-                st.success("✅ CHART_REQUEST detected!")
+            # Check what type of chart to create based on user input
+            if any(word in user_input.lower() for word in ['revenue', 'expense', 'profit', 'trend', 'line']):
+                # Create line chart
+                st.info("📈 Creating Revenue/Expenses/Profit trend chart...")
                 
-                try:
-                    # Find the CHART_REQUEST line
-                    lines = clean_response.split('\n')
-                    chart_line = None
-                    for line in lines:
-                        if "CHART_REQUEST:" in line:
-                            chart_line = line.strip()
-                            break
-                    
-                    st.write(f"**Chart line found:** {chart_line}")
-                    
-                    if chart_line:
-                        # Parse: CHART_REQUEST:type|data|description
-                        chart_info = chart_line.split("CHART_REQUEST:")[1].strip()
-                        chart_parts = chart_info.split('|')
-                        chart_type = chart_parts[0].strip() if chart_parts else "pie"
-                        
-                        st.info(f"🎨 Creating {chart_type} chart...")
-                        
-                        # Import plotly here to ensure it's available
-                        import plotly.graph_objects as go
-                        
-                        if chart_type == "line":
-                            # Multi-line chart for revenue/expenses/profit
-                            months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
-                            revenue = [95000, 105000, 98000, 125000, 118000, 130000]
-                            expenses = [78000, 82000, 85000, 89000, 91000, 88000]
-                            profit = [17000, 23000, 13000, 36000, 27000, 42000]
-                            
-                            fig = go.Figure()
-                            fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', 
-                                                   name='Revenue', line=dict(color='#00D4AA', width=3)))
-                            fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', 
-                                                   name='Expenses', line=dict(color='#FF6B6B', width=3)))
-                            fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', 
-                                                   name='Profit', line=dict(color='#4ECDC4', width=3)))
-                            
-                            fig.update_layout(
-                                title="📈 Revenue, Expenses & Profit Trends",
-                                xaxis_title="Month",
-                                yaxis_title="Amount (RM)",
-                                template="plotly_dark",
-                                height=400
-                            )
-                            
-                            st.plotly_chart(fig, use_container_width=True)
-                            st.success("✅ Line chart created successfully!")
-                            
-                        else:
-                            # Default pie chart
-                            labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
-                            values = [45000, 38000, 25000, 17430, 4570]
-                            colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
-                            
-                            fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker_colors=colors)])
-                            fig.update_layout(
-                                title="💼 Customer Revenue Distribution",
-                                template="plotly_dark",
-                                height=500
-                            )
-                            
-                            st.plotly_chart(fig, use_container_width=True)
-                            st.success("✅ Pie chart created successfully!")
-                        
-                        # Display text response without CHART_REQUEST line
-                        text_lines = [line for line in lines if "CHART_REQUEST:" not in line]
-                        text_response = '\n'.join(text_lines).strip()
-                        if text_response:
-                            st.markdown(f"**AI Assistant:** {text_response}")
-                    
-                except Exception as e:
-                    st.error(f"❌ Chart creation error: {str(e)}")
-                    st.write(f"Error details: {e}")
-                    st.markdown(f"**AI Assistant:** {response}")
+                import plotly.graph_objects as go
+                
+                months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
+                revenue = [95000, 105000, 98000, 125000, 118000, 130000]
+                expenses = [78000, 82000, 85000, 89000, 91000, 88000]
+                profit = [17000, 23000, 13000, 36000, 27000, 42000]
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', line=dict(color='#00D4AA', width=3)))
+                fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', line=dict(color='#FF6B6B', width=3)))
+                fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', line=dict(color='#4ECDC4', width=3)))
+                
+                fig.update_layout(title="📈 Revenue, Expenses & Profit Trends", xaxis_title="Month", yaxis_title="Amount (RM)", template="plotly_dark", height=400)
+                st.plotly_chart(fig, use_container_width=True)
+                st.success("✅ Line chart created!")
+                
             else:
-                st.info("ℹ️ No CHART_REQUEST found in response")
-                st.markdown(f"**AI Assistant:** {response}")
+                # Create pie chart
+                st.info("🥧 Creating Customer pie chart...")
+                
+                import plotly.graph_objects as go
+                
+                labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
+                values = [45000, 38000, 25000, 17430, 4570]
+                colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+                
+                fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker_colors=colors)])
+                fig.update_layout(title="💼 Customer Revenue Distribution", template="plotly_dark", height=500)
+                st.plotly_chart(fig, use_container_width=True)
+                st.success("✅ Pie chart created!")
             
-            # Add to history
-            st.session_state.chat_history.append({"role": "assistant", "content": response})
-            # Save to Firebase
-            save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
+            # Show AI response without CHART_REQUEST line
+            clean_response = '\n'.join([line for line in response.split('\n') if 'CHART_REQUEST:' not in line])
+            st.markdown(f"**AI Assistant:** {clean_response}")
+        else:
+            st.markdown(f"**AI Assistant:** {response}")
         
+        # Add to history and save
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
+        save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
         st.rerun()
 
 elif page == "Analytics":
