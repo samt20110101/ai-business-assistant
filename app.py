@@ -516,9 +516,30 @@ elif page == "AI Chat":
             save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
     
     with col3:
-        if st.button("🎯 Top customers analysis?"):
-            st.session_state.chat_history.append({"role": "user", "content": "Which customers are most profitable?"})
-            response = get_ai_response("customers")
+        if st.button("📊 TEST CHART"):
+            st.info("🎨 Testing chart creation...")
+            
+            try:
+                # Simple test chart using basic plotly
+                import plotly.graph_objects as go
+                
+                labels = ['ABC Trading', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
+                values = [45000, 38000, 25000, 17430, 4570]
+                
+                fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3)])
+                fig.update_layout(title="Customer Revenue Test Chart", height=400)
+                
+                st.plotly_chart(fig, use_container_width=True)
+                st.success("✅ Test chart created successfully!")
+                
+            except Exception as e:
+                st.error(f"❌ Chart creation failed: {e}")
+                st.write("Available modules:", dir())
+            
+            # Also add the AI response for testing
+            user_query = "Create a pie chart for my customers"
+            st.session_state.chat_history.append({"role": "user", "content": user_query})
+            response = get_ai_response(user_query)
             st.session_state.chat_history.append({"role": "assistant", "content": response})
             save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
     
