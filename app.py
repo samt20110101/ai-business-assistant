@@ -516,33 +516,75 @@ elif page == "AI Chat":
             save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
     
     with col3:
-        if st.button("📊 LINE CHART"):
-            st.info("📈 Creating Revenue/Expenses/Profit line chart...")
+        if st.button("📊 SMART CHART"):
+            # Check the latest AI response for chart type
+            chart_type = "revenue"  # Default
+            if st.session_state.chat_history:
+                last_ai_response = ""
+                for msg in reversed(st.session_state.chat_history):
+                    if msg['role'] == 'assistant' and 'CHART_REQUEST:' in msg['content']:
+                        last_ai_response = msg['content']
+                        break
+                
+                if "profit_margin" in last_ai_response.lower():
+                    chart_type = "profit_margin"
+                elif "revenue_trend" in last_ai_response.lower() or "revenue" in last_ai_response.lower():
+                    chart_type = "revenue"
             
             try:
                 import plotly.graph_objects as go
-                
-                # Data for line chart
                 months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
-                revenue = [95000, 105000, 98000, 125000, 118000, 130000]
-                expenses = [78000, 82000, 85000, 89000, 91000, 88000]
-                profit = [17000, 23000, 13000, 36000, 27000, 42000]
                 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', line=dict(color='#00D4AA', width=3)))
-                fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', line=dict(color='#FF6B6B', width=3)))
-                fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', line=dict(color='#4ECDC4', width=3)))
-                
-                fig.update_layout(
-                    title="📈 Revenue, Expenses & Profit Trends (Aug 2024 - Jan 2025)",
-                    xaxis_title="Month",
-                    yaxis_title="Amount (RM)",
-                    template="plotly_dark",
-                    height=450
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
-                st.success("✅ Line chart created! This shows the trends your AI described.")
+                if chart_type == "profit_margin":
+                    st.info("📊 Creating Profit Margin trend chart...")
+                    
+                    # Profit margin data
+                    profit_margins = [17.9, 21.9, 13.3, 28.8, 22.9, 32.3]
+                    
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=months, 
+                        y=profit_margins, 
+                        mode='lines+markers', 
+                        name='Profit Margin (%)', 
+                        line=dict(color='#4ECDC4', width=4),
+                        marker=dict(size=8)
+                    ))
+                    
+                    fig.update_layout(
+                        title="📈 Monthly Profit Margin Trends (Aug 2024 - Jan 2025)",
+                        xaxis_title="Month",
+                        yaxis_title="Profit Margin (%)",
+                        template="plotly_dark",
+                        height=450
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.success("✅ Profit margin chart created! Shows growth from 17.9% to 32.3%")
+                    
+                else:
+                    st.info("📈 Creating Revenue/Expenses/Profit trends...")
+                    
+                    # Revenue data
+                    revenue = [95000, 105000, 98000, 125000, 118000, 130000]
+                    expenses = [78000, 82000, 85000, 89000, 91000, 88000]
+                    profit = [17000, 23000, 13000, 36000, 27000, 42000]
+                    
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', line=dict(color='#00D4AA', width=3)))
+                    fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', line=dict(color='#FF6B6B', width=3)))
+                    fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', line=dict(color='#4ECDC4', width=3)))
+                    
+                    fig.update_layout(
+                        title="📈 Revenue, Expenses & Profit Trends (Aug 2024 - Jan 2025)",
+                        xaxis_title="Month",
+                        yaxis_title="Amount (RM)",
+                        template="plotly_dark",
+                        height=450
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.success("✅ Multi-line chart created! Shows revenue, expenses & profit trends.")
                 
             except Exception as e:
                 st.error(f"❌ Chart creation failed: {e}")
