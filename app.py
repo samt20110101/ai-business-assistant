@@ -516,32 +516,37 @@ elif page == "AI Chat":
             save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
     
     with col3:
-        if st.button("📊 TEST CHART"):
-            st.info("🎨 Testing chart creation...")
+        if st.button("📊 LINE CHART"):
+            st.info("📈 Creating Revenue/Expenses/Profit line chart...")
             
             try:
-                # Simple test chart using basic plotly
                 import plotly.graph_objects as go
                 
-                labels = ['ABC Trading', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
-                values = [45000, 38000, 25000, 17430, 4570]
+                # Data for line chart
+                months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
+                revenue = [95000, 105000, 98000, 125000, 118000, 130000]
+                expenses = [78000, 82000, 85000, 89000, 91000, 88000]
+                profit = [17000, 23000, 13000, 36000, 27000, 42000]
                 
-                fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3)])
-                fig.update_layout(title="Customer Revenue Test Chart", height=400)
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', line=dict(color='#00D4AA', width=3)))
+                fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', line=dict(color='#FF6B6B', width=3)))
+                fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', line=dict(color='#4ECDC4', width=3)))
+                
+                fig.update_layout(
+                    title="📈 Revenue, Expenses & Profit Trends (Aug 2024 - Jan 2025)",
+                    xaxis_title="Month",
+                    yaxis_title="Amount (RM)",
+                    template="plotly_dark",
+                    height=450
+                )
                 
                 st.plotly_chart(fig, use_container_width=True)
-                st.success("✅ Test chart created successfully!")
+                st.success("✅ Line chart created! This shows the trends your AI described.")
                 
             except Exception as e:
                 st.error(f"❌ Chart creation failed: {e}")
-                st.write("Available modules:", dir())
-            
-            # Also add the AI response for testing
-            user_query = "Create a pie chart for my customers"
-            st.session_state.chat_history.append({"role": "user", "content": user_query})
-            response = get_ai_response(user_query)
-            st.session_state.chat_history.append({"role": "assistant", "content": response})
-            save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
+                st.write("Error details:", str(e))
     
     # Chat history display
     st.markdown("### Conversation")
