@@ -541,30 +541,42 @@ elif page == "AI Chat":
         
         # Process the response
         if response:
-            # Check if AI requested a chart
-            if "CHART_REQUEST:" in response:
-                lines = response.split('\n')
-                chart_line = next((line for line in lines if line.startswith("CHART_REQUEST:")), None)
+            # Debug: Show what we received
+            st.write(f"**Debug - Raw Response:** {response[:100]}...")
+            
+            # Check if AI requested a chart (remove emoji and whitespace)
+            clean_response = response.replace("🤖", "").strip()
+            
+            if "CHART_REQUEST:" in clean_response:
+                st.info("🎨 Chart request detected! Creating visualization...")
+                
+                lines = clean_response.split('\n')
+                chart_line = next((line for line in lines if "CHART_REQUEST:" in line), None)
                 
                 if chart_line:
                     try:
-                        # Parse chart request: CHART_REQUEST:[type]|[title]|[description]
-                        chart_info = chart_line.replace("CHART_REQUEST:", "").strip()
+                        # Parse chart request: CHART_REQUEST:type|data|description
+                        chart_info = chart_line.split("CHART_REQUEST:")[1].strip()
                         chart_parts = chart_info.split('|')
-                        chart_type = chart_parts[0].strip() if chart_parts else "line"
+                        chart_type = chart_parts[0].strip() if chart_parts else "pie"
                         
-                        st.info(f"🎨 Creating {chart_type} chart based on your request...")
+                        st.info(f"🎨 Creating {chart_type} chart...")
                         
                         # Create and display chart
                         fig = create_chart_from_request(chart_info, chart_type)
                         if fig:
                             st.plotly_chart(fig, use_container_width=True)
                             st.success("✅ Chart created successfully!")
+                        else:
+                            st.error("❌ Failed to create chart")
                         
                         # Display text response without the CHART_REQUEST line
-                        text_response = '\n'.join([line for line in lines if not line.startswith("CHART_REQUEST:")])
-                        if text_response.strip():
+                        text_lines = [line for line in lines if "CHART_REQUEST:" not in line]
+                        text_response = '\n'.join(text_lines).strip()
+                        
+                        if text_response:
                             st.markdown(f"**AI Assistant:** {text_response}")
+                            
                     except Exception as e:
                         st.error(f"Chart creation error: {e}")
                         st.markdown(f"**AI Assistant:** {response}")
