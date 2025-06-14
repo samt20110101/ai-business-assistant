@@ -83,6 +83,13 @@ st.markdown("""
         border-radius: 10px;
         margin: 1rem 0;
     }
+    
+    .chart-container {
+        background: #1e1e1e;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,19 +129,13 @@ def init_gemini():
         return None
     
     try:
-        # Debug: Show what secrets are available
-        st.sidebar.write("🔍 Debug: Available secrets:", list(st.secrets.keys()) if hasattr(st.secrets, 'keys') else "No secrets found")
-        
         if 'gemini_api_key' in st.secrets:
             api_key = st.secrets['gemini_api_key']
-            st.sidebar.write(f"🔍 Debug: API key found, length: {len(api_key)}")
-            
             genai.configure(api_key=api_key)
             
             # Try different model names
             try:
                 model = genai.GenerativeModel('gemini-1.5-flash')
-                # Test the connection
                 test_response = model.generate_content("Hello")
                 st.sidebar.success("✅ Gemini 1.5 Flash connected!")
                 return model
@@ -192,8 +193,7 @@ def load_from_firebase(collection_name, document_id):
 
 # Initialize session state
 if 'chat_history' not in st.session_state:
-    # Try to load from Firebase first
-    user_id = "demo_user"  # In real app, this would be actual user ID
+    user_id = "demo_user"
     saved_chat = load_from_firebase('chat_histories', user_id)
     
     if saved_chat and 'messages' in saved_chat:
@@ -204,7 +204,6 @@ if 'chat_history' not in st.session_state:
         ]
 
 if 'business_data' not in st.session_state:
-    # Try to load from Firebase first
     user_id = "demo_user"
     saved_data = load_from_firebase('business_data', user_id)
     
@@ -237,6 +236,315 @@ if 'business_data' not in st.session_state:
                 'last_submission': '2024-12-31'
             }
         }
+
+# Initialize chart state
+if 'current_chart_type' not in st.session_state:
+    st.session_state.current_chart_type = None
+
+if 'chart_timestamp' not in st.session_state:
+    st.session_state.chart_timestamp = None
+
+# Chart creation helper functions
+def create_profit_margin_chart():
+    """Create profit margin trend chart"""
+    months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
+    profit_margins = [17.9, 21.9, 13.3, 28.8, 22.9, 32.3]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=months, 
+        y=profit_margins, 
+        mode='lines+markers', 
+        name='Profit Margin (%)',
+        line=dict(color='#4ECDC4', width=4),
+        marker=dict(size=10, color='#4ECDC4')
+    ))
+    
+    fig.update_layout(
+        title="📈 Monthly Profit Margin Trends (Aug 2024 - Jan 2025)",
+        xaxis_title="Month",
+        yaxis_title="Profit Margin (%)",
+        template="plotly_dark",
+        height=450,
+        showlegend=True
+    )
+    
+    return fig
+
+def create_customer_pie_chart():
+    """Create customer revenue pie chart"""
+    labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
+    values = [45000, 38000, 25000, 17430, 4570]
+    colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels, 
+        values=values, 
+        hole=.3, 
+        marker_colors=colors,
+        textinfo='label+percent',
+        textposition='outside'
+    )])
+    
+    fig.update_layout(
+        title="💼 Customer Revenue Distribution",
+        template="plotly_dark",
+        height=500,
+        showlegend=True
+    )
+    
+    return fig
+
+def create_expense_pie_chart():
+    """Create expense breakdown pie chart"""
+    expense_data = st.session_state.business_data['expenses_breakdown']
+    labels = list(expense_data.keys())
+    values = list(expense_data.values())
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8']
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=.3,
+        marker_colors=colors,
+        textinfo='label+percent',
+        textposition='outside'
+    )])
+    
+    fig.update_layout(
+        title="💸 Operating Expense Breakdown",
+        template="plotly_dark",
+        height=500,
+        showlegend=True
+    )
+    
+    return fig
+
+def create_regional_bar_chart():
+    """Create regional revenue bar chart"""
+    regions = ['KL', 'Selangor', 'Penang', 'Johor', 'Others']
+    regional_revenue = [45000, 35000, 25000, 15000, 10000]
+    colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+    
+    fig = go.Figure(data=[go.Bar(
+        x=regions,
+        y=regional_revenue,
+        marker_color=colors
+    )])
+    
+    fig.update_layout(
+        title="🗺️ Revenue by Region",
+        xaxis_title="Region",
+        yaxis_title="Revenue (RM)",
+        template="plotly_dark",
+        height=450
+    )
+    
+    return fig
+
+def create_revenue_trend_chart():
+    """Create revenue/expenses/profit trend chart"""
+    months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
+    revenue = [95000, 105000, 98000, 125000, 118000, 130000]
+    expenses = [78000, 82000, 85000, 89000, 91000, 88000]
+    profit = [17000, 23000, 13000, 36000, 27000, 42000]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', 
+                           line=dict(color='#00D4AA', width=3), marker=dict(size=8)))
+    fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', 
+                           line=dict(color='#FF6B6B', width=3), marker=dict(size=8)))
+    fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', 
+                           line=dict(color='#4ECDC4', width=3), marker=dict(size=8)))
+    
+    fig.update_layout(
+        title="📈 Revenue, Expenses & Profit Trends (Aug 2024 - Jan 2025)",
+        xaxis_title="Month",
+        yaxis_title="Amount (RM)",
+        template="plotly_dark",
+        height=450,
+        showlegend=True
+    )
+    
+    return fig
+
+def display_chart(chart_type, chart_info=""):
+    """Display the appropriate chart based on type"""
+    st.session_state.current_chart_type = chart_type
+    st.session_state.chart_timestamp = int(time.time())
+    
+    chart_functions = {
+        'profit_margin': create_profit_margin_chart,
+        'customer_pie': create_customer_pie_chart,
+        'expense_pie': create_expense_pie_chart,
+        'regional_bar': create_regional_bar_chart,
+        'revenue_trend': create_revenue_trend_chart
+    }
+    
+    if chart_type in chart_functions:
+        try:
+            fig = chart_functions[chart_type]()
+            st.plotly_chart(fig, use_container_width=True, key=f"{chart_type}_{st.session_state.chart_timestamp}")
+            
+            success_messages = {
+                'profit_margin': "✅ Profit margin chart created! Shows improvement from 17.9% to 32.3%",
+                'customer_pie': "✅ Customer pie chart created! ABC Trading leads with 34.6% of revenue.",
+                'expense_pie': "✅ Expense breakdown chart created! Staff costs are the largest expense at 39.2%.",
+                'regional_bar': "✅ Regional bar chart created! KL leads with RM 45,000 revenue.",
+                'revenue_trend': "✅ Multi-line trend chart created! Shows revenue growth and profit improvement."
+            }
+            
+            st.success(success_messages.get(chart_type, "✅ Chart created successfully!"))
+            
+            if chart_info:
+                st.info(chart_info)
+                
+        except Exception as e:
+            st.error(f"❌ Chart creation failed: {e}")
+
+# AI Response System
+def get_ai_response(question):
+    """Get AI response using Gemini or fallback to demo responses"""
+    
+    if gemini_model:
+        try:
+            # Create context with business data  
+            context = f"""
+            You are a Malaysian business intelligence assistant with ADVANCED CHARTING CAPABILITIES. You can create interactive charts for ANY business data automatically.
+
+            CHART COMMAND: When users request ANY type of chart/graph/visualization, use this format:
+            CHART_REQUEST:[chart_type]|[data_focus]|[description]
+
+            Chart Types Available:
+            - pie: For breakdowns, distributions, percentages
+            - bar: For comparisons between categories
+            - line: For trends over time
+            - area: For cumulative trends, filled areas
+
+            Data Categories You Can Chart:
+            - CUSTOMERS: Revenue by customer, customer distribution
+            - EXPENSES: Cost breakdown, expense categories  
+            - REVENUE: Monthly trends, sales over time
+            - REGIONS: Geographic revenue distribution
+            - PROFIT MARGINS: Profitability trends over time
+            - Any other business metric requested
+
+            COMPANY DATA AVAILABLE:
+            
+            FINANCIAL METRICS:
+            Monthly Revenue: RM 130,000 (↑10.2%)
+            Operating Expenses: RM 88,000 (↓3.3%)  
+            Net Profit: RM 42,000 (↑55.6%)
+            Profit Margin: 32.3% (↑4.2%)
+            
+            CUSTOMER REVENUE:
+            - ABC Trading Sdn Bhd: RM 45,000 (34.6%)
+            - XYZ Manufacturing: RM 38,000 (29.2%)
+            - DEF Industries: RM 25,000 (19.2%)
+            - GHI Solutions: RM 17,430 (13.4%)
+            - Others: RM 4,570 (3.5%)
+            
+            EXPENSE CATEGORIES:
+            - Staff Costs: RM 35,000 (39.2%)
+            - Marketing: RM 15,000 (16.8%)
+            - Rent: RM 12,000 (13.5%)
+            - Supplies: RM 11,000 (12.3%)
+            - Utilities: RM 8,000 (9.0%)
+            - Insurance: RM 7,000 (9.2%)
+            
+            REGIONAL REVENUE:
+            - KL: RM 45,000
+            - Selangor: RM 35,000
+            - Penang: RM 25,000
+            - Johor: RM 15,000
+            - Others: RM 10,000
+            
+            MONTHLY TRENDS (Aug 2024 - Jan 2025):
+            Aug: Revenue RM95k, Expenses RM78k, Profit RM17k, Margin 17.9%
+            Sep: Revenue RM105k, Expenses RM82k, Profit RM23k, Margin 21.9%
+            Oct: Revenue RM98k, Expenses RM85k, Profit RM13k, Margin 13.3%
+            Nov: Revenue RM125k, Expenses RM89k, Profit RM36k, Margin 28.9%
+            Dec: Revenue RM118k, Expenses RM91k, Profit RM27k, Margin 22.9%
+            Jan: Revenue RM130k, Expenses RM88k, Profit RM42k, Margin 32.3%
+            
+            USER REQUEST: {question}
+            
+            EXAMPLES OF WHAT YOU CAN CHART:
+            - "Show regional sales" → CHART_REQUEST:bar|regions|Regional revenue comparison
+            - "Profit margin trends" → CHART_REQUEST:line|profit_margins|Monthly profit margin trends
+            - "Customer pie chart" → CHART_REQUEST:pie|customers|Customer revenue distribution
+            - "Expense breakdown" → CHART_REQUEST:pie|expenses|Operating expense categories
+            - "Monthly revenue trends" → CHART_REQUEST:line|revenue_trend|Revenue and expense trends
+            
+            CRITICAL: Always include the CHART_REQUEST if they want ANY visualization, then provide analysis!
+            """
+            
+            response = gemini_model.generate_content(context)
+            return f"🤖 {response.text}"
+            
+        except Exception as e:
+            st.error(f"Gemini AI error: {str(e)}")
+            return get_fallback_response(question)
+    else:
+        return get_fallback_response(question)
+
+def get_fallback_response(question):
+    """Fallback responses when Gemini is not available"""
+    responses = {
+        'cash flow': "📊 Your cash flow is healthy! Current month shows RM 42,000 net profit. Based on trends, I predict next month you'll have RM 45,000 excess cash. Recommendation: Consider investing in inventory or new equipment.",
+        'performance': "🚀 Excellent performance this month! Revenue up 10% to RM 130,000, expenses down to RM 88,000, resulting in 23% profit increase. Your profit margin improved to 32.3% - above industry average of 22%.",
+        'expenses': "💡 Top expense reduction opportunities: 1) Staff costs at RM 35,000 (40% of expenses) - consider productivity tools. 2) Marketing spend at RM 15,000 - analyze ROI. 3) Utilities at RM 8,200 - energy audit recommended.",
+        'customers': "🎯 Customer profitability analysis: ABC Trading (RM 45k, 35% margin) and XYZ Manufacturing (RM 38k, 28% margin) are your top revenue generators. They represent 64% of revenue. Recommendation: Develop 2-3 similar-sized clients to reduce concentration risk.",
+        'staff': "👥 Based on current workload and revenue growth, yes! Your revenue per employee calculation shows good productivity. Adding 1 sales person could increase revenue by RM 180k annually. ROI: 340%.",
+        'prediction': "🔮 Next month prediction: Revenue RM 132,000 (+2%), Expenses RM 87,500 (-1%), Net Profit RM 44,500 (+6%). Confidence: 87%. Key factors: Seasonal uptick + customer retention.",
+        'sst': "📋 SST Status: Next submission due 28 Feb 2025. Current quarter sales: RM 373,430. Estimated SST liability: RM 22,406. Recommendation: Set aside funds now to avoid cash flow issues.",
+        'e-invoice': "📧 E-Invoice Status: Setup pending. From August 2024, all B2B transactions require e-invoicing. I can help you prepare the integration. Estimated setup time: 2 weeks.",
+        'chart': "CHART_REQUEST:line|revenue_trend|Monthly revenue and profit trends",
+        'profit margin': "CHART_REQUEST:line|profit_margins|Monthly profit margin trends",
+        'customer': "CHART_REQUEST:pie|customers|Customer revenue distribution",
+        'expense': "CHART_REQUEST:pie|expenses|Operating expense breakdown",
+        'region': "CHART_REQUEST:bar|regions|Regional revenue comparison"
+    }
+    
+    question_lower = question.lower()
+    for key, response in responses.items():
+        if key in question_lower:
+            return response
+    
+    return "🤖 Great question! Based on your data: Revenue trending upward (+10%), expenses controlled (RM 88k), profit margin strong at 32.3%. Your business fundamentals look solid. What specific aspect would you like me to analyze?"
+
+def parse_chart_request(response):
+    """Parse chart request from AI response"""
+    chart_request_line = ""
+    for line in response.split('\n'):
+        if line.startswith('CHART_REQUEST:'):
+            chart_request_line = line
+            break
+    
+    if not chart_request_line:
+        return None, None, None
+    
+    try:
+        parts = chart_request_line.replace('CHART_REQUEST:', '').split('|')
+        chart_type_req = parts[0].strip() if len(parts) > 0 else ""
+        data_focus = parts[1].strip() if len(parts) > 1 else ""
+        description = parts[2].strip() if len(parts) > 2 else ""
+        
+        # Map chart request to actual chart type
+        if 'profit_margin' in data_focus.lower() or 'margin' in data_focus.lower():
+            return 'profit_margin', data_focus, description
+        elif 'customer' in data_focus.lower():
+            return 'customer_pie', data_focus, description
+        elif 'expense' in data_focus.lower():
+            return 'expense_pie', data_focus, description
+        elif 'region' in data_focus.lower():
+            return 'regional_bar', data_focus, description
+        else:
+            return 'revenue_trend', data_focus, description
+            
+    except Exception as e:
+        st.error(f"Chart parsing error: {e}")
+        return 'revenue_trend', 'default', 'Revenue trends'
 
 # Main header
 st.markdown("""
@@ -345,7 +653,7 @@ if page == "Dashboard":
         )
         st.plotly_chart(fig_pie, use_container_width=True)
     
-    # AI insights with real-time analysis
+    # AI insights
     st.markdown("### 🎯 AI-Powered Business Insights")
     
     if gemini_model:
@@ -382,112 +690,6 @@ if page == "Dashboard":
 elif page == "AI Chat":
     st.header("💬 AI Business Assistant")
     
-    # AI Response System
-    def get_ai_response(question):
-        """Get AI response using Gemini or fallback to demo responses"""
-        
-        if gemini_model:
-            try:
-                # Create context with business data  
-                context = f"""
-                You are a Malaysian business intelligence assistant with ADVANCED CHARTING CAPABILITIES. You can create interactive charts for ANY business data automatically.
-
-                CHART COMMAND: When users request ANY type of chart/graph/visualization, use this format:
-                CHART_REQUEST:[chart_type]|[data_focus]|[description]
-
-                Chart Types Available:
-                - pie: For breakdowns, distributions, percentages
-                - bar: For comparisons between categories
-                - line: For trends over time
-                - area: For cumulative trends, filled areas
-
-                Data Categories You Can Chart:
-                - CUSTOMERS: Revenue by customer, customer distribution
-                - EXPENSES: Cost breakdown, expense categories  
-                - REVENUE: Monthly trends, sales over time
-                - REGIONS: Geographic revenue distribution
-                - PROFIT MARGINS: Profitability trends over time
-                - Any other business metric requested
-
-                COMPANY DATA AVAILABLE:
-                
-                FINANCIAL METRICS:
-                Monthly Revenue: RM 130,000 (↑10.2%)
-                Operating Expenses: RM 88,000 (↓3.3%)  
-                Net Profit: RM 42,000 (↑55.6%)
-                Profit Margin: 32.3% (↑4.2%)
-                
-                CUSTOMER REVENUE:
-                - ABC Trading Sdn Bhd: RM 45,000 (34.6%)
-                - XYZ Manufacturing: RM 38,000 (29.2%)
-                - DEF Industries: RM 25,000 (19.2%)
-                - GHI Solutions: RM 17,430 (13.4%)
-                - Others: RM 4,570 (3.5%)
-                
-                EXPENSE CATEGORIES:
-                - Staff Costs: RM 35,000 (39.2%)
-                - Marketing: RM 15,000 (16.8%)
-                - Rent: RM 12,000 (13.5%)
-                - Supplies: RM 11,000 (12.3%)
-                - Utilities: RM 8,000 (9.0%)
-                - Insurance: RM 7,000 (9.2%)
-                
-                REGIONAL REVENUE:
-                - KL: RM 45,000
-                - Selangor: RM 35,000
-                - Penang: RM 25,000
-                - Johor: RM 15,000
-                - Others: RM 10,000
-                
-                MONTHLY TRENDS (Aug 2024 - Jan 2025):
-                Aug: Revenue RM95k, Expenses RM78k, Profit RM17k, Margin 17.9%
-                Sep: Revenue RM105k, Expenses RM82k, Profit RM23k, Margin 21.9%
-                Oct: Revenue RM98k, Expenses RM85k, Profit RM13k, Margin 13.3%
-                Nov: Revenue RM125k, Expenses RM89k, Profit RM36k, Margin 28.9%
-                Dec: Revenue RM118k, Expenses RM91k, Profit RM27k, Margin 22.9%
-                Jan: Revenue RM130k, Expenses RM88k, Profit RM42k, Margin 32.3%
-                
-                USER REQUEST: {question}
-                
-                EXAMPLES OF WHAT YOU CAN CHART:
-                - "Show regional sales" → CHART_REQUEST:bar|regions|Regional revenue comparison
-                - "Profit margin trends" → CHART_REQUEST:line|profit_margins|Monthly profit margin trends
-                - "Customer pie chart" → CHART_REQUEST:pie|customers|Customer revenue distribution
-                - "Expense breakdown" → CHART_REQUEST:pie|expenses|Operating expense categories
-                - "Monthly revenue trends" → CHART_REQUEST:line|revenue_trend|Revenue and expense trends
-                
-                CRITICAL: Always include the CHART_REQUEST if they want ANY visualization, then provide analysis!
-                """
-                
-                response = gemini_model.generate_content(context)
-                return f"🤖 {response.text}"
-                
-            except Exception as e:
-                st.error(f"Gemini AI error: {str(e)}")
-                return get_fallback_response(question)
-        else:
-            return get_fallback_response(question)
-    
-    def get_fallback_response(question):
-        """Fallback responses when Gemini is not available"""
-        responses = {
-            'cash flow': "📊 Your cash flow is healthy! Current month shows RM 42,000 net profit. Based on trends, I predict next month you'll have RM 45,000 excess cash. Recommendation: Consider investing in inventory or new equipment.",
-            'performance': "🚀 Excellent performance this month! Revenue up 10% to RM 130,000, expenses down to RM 88,000, resulting in 23% profit increase. Your profit margin improved to 32.3% - above industry average of 22%.",
-            'expenses': "💡 Top expense reduction opportunities: 1) Staff costs at RM 35,000 (40% of expenses) - consider productivity tools. 2) Marketing spend at RM 15,000 - analyze ROI. 3) Utilities at RM 8,200 - energy audit recommended.",
-            'customers': "🎯 Customer profitability analysis: ABC Trading (RM 45k, 35% margin) and XYZ Manufacturing (RM 38k, 28% margin) are your top revenue generators. They represent 64% of revenue. Recommendation: Develop 2-3 similar-sized clients to reduce concentration risk.",
-            'staff': "👥 Based on current workload and revenue growth, yes! Your revenue per employee calculation shows good productivity. Adding 1 sales person could increase revenue by RM 180k annually. ROI: 340%.",
-            'prediction': "🔮 Next month prediction: Revenue RM 132,000 (+2%), Expenses RM 87,500 (-1%), Net Profit RM 44,500 (+6%). Confidence: 87%. Key factors: Seasonal uptick + customer retention.",
-            'sst': "📋 SST Status: Next submission due 28 Feb 2025. Current quarter sales: RM 373,430. Estimated SST liability: RM 22,406. Recommendation: Set aside funds now to avoid cash flow issues.",
-            'e-invoice': "📧 E-Invoice Status: Setup pending. From August 2024, all B2B transactions require e-invoicing. I can help you prepare the integration. Estimated setup time: 2 weeks."
-        }
-        
-        question_lower = question.lower()
-        for key, response in responses.items():
-            if key in question_lower:
-                return response
-        
-        return "🤖 Great question! Based on your data: Revenue trending upward (+10%), expenses controlled (RM 88k), profit margin strong at 32.3%. Your business fundamentals look solid. What specific aspect would you like me to analyze?"
-    
     # Chat interface
     st.markdown("""
     <div class="ai-chat-container">
@@ -498,164 +700,94 @@ elif page == "AI Chat":
     
     # Quick query buttons
     st.markdown("**Quick Queries:**")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        if st.button("💰 How's my cash flow?"):
-            st.session_state.chat_history.append({"role": "user", "content": "How's my cash flow?"})
-            response = get_ai_response("cash flow")
+        if st.button("💰 Cash Flow"):
+            user_question = "How's my cash flow?"
+            st.session_state.chat_history.append({"role": "user", "content": user_question})
+            response = get_ai_response(user_question)
             st.session_state.chat_history.append({"role": "assistant", "content": response})
-            # Save to Firebase
             save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
+            st.rerun()
     
     with col2:
-        if st.button("📈 Business performance?"):
-            st.session_state.chat_history.append({"role": "user", "content": "How is my business performing?"})
-            response = get_ai_response("performance")
+        if st.button("📈 Performance"):
+            user_question = "How is my business performing?"
+            st.session_state.chat_history.append({"role": "user", "content": user_question})
+            response = get_ai_response(user_question)
             st.session_state.chat_history.append({"role": "assistant", "content": response})
             save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
+            st.rerun()
     
     with col3:
-        if st.button("📊 SMART CHART"):
-            # Check the latest AI response for chart type
-            chart_type = "revenue"  # Default
-            if st.session_state.chat_history:
-                last_ai_response = ""
-                for msg in reversed(st.session_state.chat_history):
-                    if msg['role'] == 'assistant' and 'CHART_REQUEST:' in msg['content']:
-                        last_ai_response = msg['content']
-                        break
-                
-                if "profit_margin" in last_ai_response.lower():
-                    chart_type = "profit_margin"
-                elif "revenue_trend" in last_ai_response.lower() or "revenue" in last_ai_response.lower():
-                    chart_type = "revenue"
+        if st.button("📊 Create Chart"):
+            # Find the latest chart request from chat history
+            latest_chart_request = None
+            for msg in reversed(st.session_state.chat_history):
+                if msg['role'] == 'assistant' and 'CHART_REQUEST:' in msg['content']:
+                    latest_chart_request = msg['content']
+                    break
             
-            try:
-                import plotly.graph_objects as go
-                months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
-                
-                if chart_type == "profit_margin":
-                    st.info("📊 Creating Profit Margin trend chart...")
-                    
-                    # Profit margin data
-                    profit_margins = [17.9, 21.9, 13.3, 28.8, 22.9, 32.3]
-                    
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=months, 
-                        y=profit_margins, 
-                        mode='lines+markers', 
-                        name='Profit Margin (%)', 
-                        line=dict(color='#4ECDC4', width=4),
-                        marker=dict(size=8)
-                    ))
-                    
-                    fig.update_layout(
-                        title="📈 Monthly Profit Margin Trends (Aug 2024 - Jan 2025)",
-                        xaxis_title="Month",
-                        yaxis_title="Profit Margin (%)",
-                        template="plotly_dark",
-                        height=450
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.success("✅ Profit margin chart created! Shows growth from 17.9% to 32.3%")
-                    
-                else:
-                    st.info("📈 Creating Revenue/Expenses/Profit trends...")
-                    
-                    # Revenue data
-                    revenue = [95000, 105000, 98000, 125000, 118000, 130000]
-                    expenses = [78000, 82000, 85000, 89000, 91000, 88000]
-                    profit = [17000, 23000, 13000, 36000, 27000, 42000]
-                    
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', line=dict(color='#00D4AA', width=3)))
-                    fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', line=dict(color='#FF6B6B', width=3)))
-                    fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', line=dict(color='#4ECDC4', width=3)))
-                    
-                    fig.update_layout(
-                        title="📈 Revenue, Expenses & Profit Trends (Aug 2024 - Jan 2025)",
-                        xaxis_title="Month",
-                        yaxis_title="Amount (RM)",
-                        template="plotly_dark",
-                        height=450
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.success("✅ Multi-line chart created! Shows revenue, expenses & profit trends.")
-                
-            except Exception as e:
-                st.error(f"❌ Chart creation failed: {e}")
-                st.write("Error details:", str(e))
+            if latest_chart_request:
+                chart_type, data_focus, description = parse_chart_request(latest_chart_request)
+                if chart_type:
+                    st.info(f"📊 Creating {chart_type.replace('_', ' ').title()} chart...")
+                    display_chart(chart_type, f"Generated from: {data_focus}")
+            else:
+                # Default chart if no recent chart request
+                st.info("📈 Creating default revenue trend chart...")
+                display_chart('revenue_trend', "Default chart - ask for specific charts in chat!")
+    
+    with col4:
+        if st.button("🔄 Clear Charts"):
+            st.session_state.current_chart_type = None
+            st.session_state.chart_timestamp = None
+            st.success("✅ Charts cleared!")
+            st.rerun()
+    
+    # Display current chart if exists
+    if st.session_state.current_chart_type:
+        st.markdown("### 📊 Current Chart")
+        display_chart(st.session_state.current_chart_type)
     
     # Chat history display
-    st.markdown("### Conversation")
-    for message in st.session_state.chat_history:
-        if message["role"] == "user":
-            st.markdown(f"**You:** {message['content']}")
-        else:
-            st.markdown(f"**AI Assistant:** {message['content']}")
+    st.markdown("### 💬 Conversation")
+    chat_container = st.container()
+    with chat_container:
+        for i, message in enumerate(st.session_state.chat_history):
+            if message["role"] == "user":
+                st.markdown(f"**You:** {message['content']}")
+            else:
+                # Clean the response to remove CHART_REQUEST lines
+                clean_content = '\n'.join([line for line in message['content'].split('\n') if not line.startswith('CHART_REQUEST:')])
+                st.markdown(f"**AI Assistant:** {clean_content}")
     
     # Chat input
-    user_input = st.text_input("Ask your question:", placeholder="e.g., 'Should I reduce expenses?' or 'Predict next quarter revenue'")
+    st.markdown("### 💭 Ask a Question")
+    user_input = st.text_input("", placeholder="e.g., 'Show me profit margin trends' or 'Create a customer pie chart'", key="chat_input")
     
-    if st.button("Send") and user_input:
+    if st.button("Send", type="primary") and user_input:
+        # Add user message
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         
         # Get AI response
         response = get_ai_response(user_input)
         
-        # SIMPLE CHART PROCESSING
-        if response and "CHART_REQUEST:" in response:
-            st.success("🎉 CHART DETECTED - Creating visualization...")
-            
-            # Check what type of chart to create based on user input
-            if any(word in user_input.lower() for word in ['revenue', 'expense', 'profit', 'trend', 'line']):
-                # Create line chart
-                st.info("📈 Creating Revenue/Expenses/Profit trend chart...")
-                
-                import plotly.graph_objects as go
-                
-                months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
-                revenue = [95000, 105000, 98000, 125000, 118000, 130000]
-                expenses = [78000, 82000, 85000, 89000, 91000, 88000]
-                profit = [17000, 23000, 13000, 36000, 27000, 42000]
-                
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', line=dict(color='#00D4AA', width=3)))
-                fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', line=dict(color='#FF6B6B', width=3)))
-                fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', line=dict(color='#4ECDC4', width=3)))
-                
-                fig.update_layout(title="📈 Revenue, Expenses & Profit Trends", xaxis_title="Month", yaxis_title="Amount (RM)", template="plotly_dark", height=400)
-                st.plotly_chart(fig, use_container_width=True)
-                st.success("✅ Line chart created!")
-                
-            else:
-                # Create pie chart
-                st.info("🥧 Creating Customer pie chart...")
-                
-                import plotly.graph_objects as go
-                
-                labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
-                values = [45000, 38000, 25000, 17430, 4570]
-                colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
-                
-                fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3, marker_colors=colors)])
-                fig.update_layout(title="💼 Customer Revenue Distribution", template="plotly_dark", height=500)
-                st.plotly_chart(fig, use_container_width=True)
-                st.success("✅ Pie chart created!")
-            
-            # Show AI response without CHART_REQUEST line
-            clean_response = '\n'.join([line for line in response.split('\n') if 'CHART_REQUEST:' not in line])
-            st.markdown(f"**AI Assistant:** {clean_response}")
-        else:
-            st.markdown(f"**AI Assistant:** {response}")
+        # Check if response contains chart request
+        if "CHART_REQUEST:" in response:
+            chart_type, data_focus, description = parse_chart_request(response)
+            if chart_type:
+                st.success("🎉 Chart request detected! Creating visualization...")
+                display_chart(cart_type, f"Generated from: {data_focus}")
         
-        # Add to history and save
+        # Add AI response to history
         st.session_state.chat_history.append({"role": "assistant", "content": response})
+        
+        # Save to Firebase
         save_to_firebase('chat_histories', 'demo_user', {'messages': st.session_state.chat_history})
+        
+        # Rerun to update display
         st.rerun()
 
 elif page == "Analytics":
@@ -704,6 +836,41 @@ elif page == "Analytics":
                       color='Type', title="Revenue & Expense Predictions",
                       line_dash='Type')
     st.plotly_chart(fig_pred, use_container_width=True)
+
+elif page == "Compliance":
+    st.header("📋 Malaysian Compliance Dashboard")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🧾 SST Compliance")
+        st.info(f"Next SST submission due: {st.session_state.business_data['compliance']['sst_due']}")
+        
+        # SST calculation
+        current_quarter_sales = sum(st.session_state.business_data['revenue'][-3:])
+        sst_rate = 0.06  # 6% SST
+        estimated_sst = current_quarter_sales * sst_rate
+        
+        st.metric("Current Quarter Sales", f"RM {current_quarter_sales:,.0f}")
+        st.metric("Estimated SST Liability", f"RM {estimated_sst:,.0f}")
+        
+        if st.button("Generate SST Report"):
+            st.success("SST report generated! Ready for submission.")
+    
+    with col2:
+        st.subheader("📧 E-Invoice Status")
+        st.warning(f"Status: {st.session_state.business_data['compliance']['e_invoice_status']}")
+        
+        st.info("E-Invoice is mandatory for B2B transactions in Malaysia from August 2024")
+        
+        if st.button("Setup E-Invoice Integration"):
+            st.success("E-Invoice setup initiated! Our AI will guide you through the process.")
+    
+    # Compliance alerts
+    st.subheader("⚠️ Compliance Alerts")
+    st.error("Action Required: E-Invoice system not yet configured")
+    st.warning("Reminder: SST submission due in 15 days")
+    st.success("All other compliance requirements up to date")
 
 elif page == "Data Viewer":
     st.header("📋 Demo Data Viewer")
@@ -780,41 +947,6 @@ elif page == "Data Viewer":
     # Raw Data (Expandable)
     with st.expander("🔍 View Raw Data (JSON)"):
         st.json(st.session_state.business_data)
-
-elif page == "Compliance":
-    st.header("📋 Malaysian Compliance Dashboard")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🧾 SST Compliance")
-        st.info(f"Next SST submission due: {st.session_state.business_data['compliance']['sst_due']}")
-        
-        # SST calculation
-        current_quarter_sales = sum(st.session_state.business_data['revenue'][-3:])
-        sst_rate = 0.06  # 6% SST
-        estimated_sst = current_quarter_sales * sst_rate
-        
-        st.metric("Current Quarter Sales", f"RM {current_quarter_sales:,.0f}")
-        st.metric("Estimated SST Liability", f"RM {estimated_sst:,.0f}")
-        
-        if st.button("Generate SST Report"):
-            st.success("SST report generated! Ready for submission.")
-    
-    with col2:
-        st.subheader("📧 E-Invoice Status")
-        st.warning(f"Status: {st.session_state.business_data['compliance']['e_invoice_status']}")
-        
-        st.info("E-Invoice is mandatory for B2B transactions in Malaysia from August 2024")
-        
-        if st.button("Setup E-Invoice Integration"):
-            st.success("E-Invoice setup initiated! Our AI will guide you through the process.")
-    
-    # Compliance alerts
-    st.subheader("⚠️ Compliance Alerts")
-    st.error("Action Required: E-Invoice system not yet configured")
-    st.warning("Reminder: SST submission due in 15 days")
-    st.success("All other compliance requirements up to date")
 
 elif page == "Settings":
     st.header("⚙️ Settings")
