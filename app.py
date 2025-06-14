@@ -779,7 +779,7 @@ elif page == "AI Chat":
             chart_type, data_focus, description = parse_chart_request(response)
             if chart_type:
                 st.success("🎉 Chart request detected! Creating visualization...")
-                display_chart(cart_type, f"Generated from: {data_focus}")
+                display_chart(chart_type, f"Generated from: {data_focus}")
         
         # Add AI response to history
         st.session_state.chat_history.append({"role": "assistant", "content": response})
