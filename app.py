@@ -118,18 +118,29 @@ def init_firebase():
 def init_gemini():
     """Initialize Gemini AI"""
     if not GEMINI_AVAILABLE:
+        st.sidebar.error("❌ google-generativeai library not installed")
         return None
     
     try:
+        # Debug: Show what secrets are available
+        st.sidebar.write("🔍 Debug: Available secrets:", list(st.secrets.keys()) if hasattr(st.secrets, 'keys') else "No secrets found")
+        
         if 'gemini_api_key' in st.secrets:
-            genai.configure(api_key=st.secrets['gemini_api_key'])
+            api_key = st.secrets['gemini_api_key']
+            st.sidebar.write(f"🔍 Debug: API key found, length: {len(api_key)}")
+            
+            genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-pro')
+            
+            # Test the connection
+            test_response = model.generate_content("Hello")
+            st.sidebar.success("✅ Gemini test successful!")
             return model
         else:
-            st.warning("⚠️ Gemini API key not configured. Using demo responses.")
+            st.sidebar.warning("⚠️ gemini_api_key not found in secrets")
             return None
     except Exception as e:
-        st.error(f"Gemini connection error: {str(e)}")
+        st.sidebar.error(f"❌ Gemini error: {str(e)}")
         return None
 
 # Initialize Firebase connection
