@@ -209,7 +209,14 @@ if 'current_chart_type' not in st.session_state:
 def create_and_show_chart(chart_type):
     """Create and immediately display a chart"""
     
+    # Clear any existing charts first
+    st.session_state.show_chart = False
+    st.session_state.current_chart_type = None
+    
     try:
+        # Generate unique key for each chart to force refresh
+        chart_key = f"{chart_type}_{int(time.time())}"
+        
         if chart_type == "profit_margin":
             st.markdown('<div class="chart-section">', unsafe_allow_html=True)
             st.subheader("📈 Profit Margin Trends")
@@ -235,7 +242,7 @@ def create_and_show_chart(chart_type):
                 height=450
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key=chart_key)
             st.success("✅ Profit margin chart created! Shows improvement from 17.9% to 32.3%")
             st.markdown('</div>', unsafe_allow_html=True)
             
@@ -261,7 +268,7 @@ def create_and_show_chart(chart_type):
                 height=500
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key=chart_key)
             st.success("✅ Customer pie chart created! ABC Trading leads with 34.6% of revenue.")
             st.markdown('</div>', unsafe_allow_html=True)
             
@@ -288,7 +295,7 @@ def create_and_show_chart(chart_type):
                 height=500
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key=chart_key)
             st.success("✅ Expense breakdown chart created! Staff costs are the largest expense at 39.2%.")
             st.markdown('</div>', unsafe_allow_html=True)
             
@@ -314,7 +321,7 @@ def create_and_show_chart(chart_type):
                 height=450
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key=chart_key)
             st.success("✅ Regional bar chart created! KL leads with RM 45,000 revenue.")
             st.markdown('</div>', unsafe_allow_html=True)
             
@@ -343,13 +350,14 @@ def create_and_show_chart(chart_type):
                 height=450
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key=chart_key)
             st.success("✅ Multi-line trend chart created! Shows revenue growth and profit improvement.")
             st.markdown('</div>', unsafe_allow_html=True)
-            
-        # Update session state
+        
+        # Update session state AFTER chart is created
         st.session_state.show_chart = True
         st.session_state.current_chart_type = chart_type
+        st.session_state.chart_displayed = chart_key
         
     except Exception as e:
         st.error(f"❌ Chart creation failed: {e}")
@@ -538,6 +546,9 @@ if page == "AI Chat":
         if st.button("🔄 Clear Charts"):
             st.session_state.show_chart = False
             st.session_state.current_chart_type = None
+            # Force clear by removing chart from session state completely
+            if 'chart_displayed' in st.session_state:
+                del st.session_state['chart_displayed']
             st.success("✅ Charts cleared!")
             st.rerun()
     
