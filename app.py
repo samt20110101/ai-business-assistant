@@ -205,163 +205,13 @@ if 'show_chart' not in st.session_state:
 if 'current_chart_type' not in st.session_state:
     st.session_state.current_chart_type = None
 
-# SIMPLE CHART CREATION FUNCTIONS
-def create_and_show_chart(chart_type):
-    """Create and immediately display a chart"""
-    
-    # Clear any existing charts first
-    st.session_state.show_chart = False
-    st.session_state.current_chart_type = None
-    
-    try:
-        # Generate unique key for each chart to force refresh
-        chart_key = f"{chart_type}_{int(time.time())}"
-        
-        if chart_type == "profit_margin":
-            st.markdown('<div class="chart-section">', unsafe_allow_html=True)
-            st.subheader("📈 Profit Margin Trends")
-            
-            months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
-            profit_margins = [17.9, 21.9, 13.3, 28.8, 22.9, 32.3]
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=months, 
-                y=profit_margins, 
-                mode='lines+markers', 
-                name='Profit Margin (%)',
-                line=dict(color='#4ECDC4', width=4),
-                marker=dict(size=10, color='#4ECDC4')
-            ))
-            
-            fig.update_layout(
-                title="Monthly Profit Margin Trends (Aug 2024 - Jan 2025)",
-                xaxis_title="Month",
-                yaxis_title="Profit Margin (%)",
-                template="plotly_dark",
-                height=450
-            )
-            
-            st.plotly_chart(fig, use_container_width=True, key=chart_key)
-            st.success("✅ Profit margin chart created! Shows improvement from 17.9% to 32.3%")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        elif chart_type == "customer_pie":
-            st.markdown('<div class="chart-section">', unsafe_allow_html=True)
-            st.subheader("🥧 Customer Revenue Distribution")
-            
-            labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
-            values = [45000, 38000, 25000, 17430, 4570]
-            colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
-            
-            fig = go.Figure(data=[go.Pie(
-                labels=labels, 
-                values=values, 
-                hole=.3, 
-                marker_colors=colors,
-                textinfo='label+percent'
-            )])
-            
-            fig.update_layout(
-                title="Customer Revenue Distribution",
-                template="plotly_dark",
-                height=500
-            )
-            
-            st.plotly_chart(fig, use_container_width=True, key=chart_key)
-            st.success("✅ Customer pie chart created! ABC Trading leads with 34.6% of revenue.")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        elif chart_type == "expense_pie":
-            st.markdown('<div class="chart-section">', unsafe_allow_html=True)
-            st.subheader("💰 Expense Breakdown")
-            
-            expense_data = st.session_state.business_data['expenses_breakdown']
-            labels = list(expense_data.keys())
-            values = list(expense_data.values())
-            colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8']
-            
-            fig = go.Figure(data=[go.Pie(
-                labels=labels,
-                values=values,
-                hole=.3,
-                marker_colors=colors,
-                textinfo='label+percent'
-            )])
-            
-            fig.update_layout(
-                title="Operating Expense Breakdown",
-                template="plotly_dark",
-                height=500
-            )
-            
-            st.plotly_chart(fig, use_container_width=True, key=chart_key)
-            st.success("✅ Expense breakdown chart created! Staff costs are the largest expense at 39.2%.")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        elif chart_type == "regional_bar":
-            st.markdown('<div class="chart-section">', unsafe_allow_html=True)
-            st.subheader("🌏 Regional Revenue")
-            
-            regions = ['KL', 'Selangor', 'Penang', 'Johor', 'Others']
-            regional_revenue = [45000, 35000, 25000, 15000, 10000]
-            colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
-            
-            fig = go.Figure(data=[go.Bar(
-                x=regions,
-                y=regional_revenue,
-                marker_color=colors
-            )])
-            
-            fig.update_layout(
-                title="Revenue by Region",
-                xaxis_title="Region",
-                yaxis_title="Revenue (RM)",
-                template="plotly_dark",
-                height=450
-            )
-            
-            st.plotly_chart(fig, use_container_width=True, key=chart_key)
-            st.success("✅ Regional bar chart created! KL leads with RM 45,000 revenue.")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        else:  # Default to revenue trend
-            st.markdown('<div class="chart-section">', unsafe_allow_html=True)
-            st.subheader("📈 Revenue, Expenses & Profit Trends")
-            
-            months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
-            revenue = [95000, 105000, 98000, 125000, 118000, 130000]
-            expenses = [78000, 82000, 85000, 89000, 91000, 88000]
-            profit = [17000, 23000, 13000, 36000, 27000, 42000]
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', 
-                                   line=dict(color='#00D4AA', width=3), marker=dict(size=8)))
-            fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', 
-                                   line=dict(color='#FF6B6B', width=3), marker=dict(size=8)))
-            fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', 
-                                   line=dict(color='#4ECDC4', width=3), marker=dict(size=8)))
-            
-            fig.update_layout(
-                title="Revenue, Expenses & Profit Trends (Aug 2024 - Jan 2025)",
-                xaxis_title="Month",
-                yaxis_title="Amount (RM)",
-                template="plotly_dark",
-                height=450
-            )
-            
-            st.plotly_chart(fig, use_container_width=True, key=chart_key)
-            st.success("✅ Multi-line trend chart created! Shows revenue growth and profit improvement.")
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Update session state AFTER chart is created
-        st.session_state.show_chart = True
-        st.session_state.current_chart_type = chart_type
-        st.session_state.chart_displayed = chart_key
-        
-    except Exception as e:
-        st.error(f"❌ Chart creation failed: {e}")
-        st.write("Error details:", str(e))
+# SIMPLIFIED CHART ACTIVATION FUNCTIONS
+def activate_chart(chart_type):
+    """Activate a chart for display in the main chart section"""
+    st.session_state.show_chart = True
+    st.session_state.current_chart_type = chart_type
+    st.session_state.chart_displayed = int(time.time())
+    st.success(f"✅ {chart_type.replace('_', ' ').title()} chart activated!")
 
 # AI Response System
 def get_ai_response(question):
@@ -540,7 +390,8 @@ if page == "AI Chat":
     
     with col3:
         if st.button("📊 Revenue Chart"):
-            create_and_show_chart('revenue_trend')
+            activate_chart('revenue_trend')
+            st.rerun()
     
     with col4:
         if st.button("🔄 Clear Charts"):
@@ -552,22 +403,172 @@ if page == "AI Chat":
             st.success("✅ Charts cleared!")
             st.rerun()
     
-    # Chat history display
+    # Chart display section - SEPARATE from chat history
+    if st.session_state.show_chart and st.session_state.current_chart_type:
+        st.markdown("### 📊 Active Chart")
+        
+        # Generate unique key for current chart
+        chart_key = f"{st.session_state.current_chart_type}_{st.session_state.get('chart_displayed', int(time.time()))}"
+        
+        try:
+            if st.session_state.current_chart_type == "profit_margin":
+                st.markdown('<div class="chart-section">', unsafe_allow_html=True)
+                st.subheader("📈 Profit Margin Trends")
+                
+                months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
+                profit_margins = [17.9, 21.9, 13.3, 28.8, 22.9, 32.3]
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=months, 
+                    y=profit_margins, 
+                    mode='lines+markers', 
+                    name='Profit Margin (%)',
+                    line=dict(color='#4ECDC4', width=4),
+                    marker=dict(size=10, color='#4ECDC4')
+                ))
+                
+                fig.update_layout(
+                    title="Monthly Profit Margin Trends (Aug 2024 - Jan 2025)",
+                    xaxis_title="Month",
+                    yaxis_title="Profit Margin (%)",
+                    template="plotly_dark",
+                    height=450
+                )
+                
+                st.plotly_chart(fig, use_container_width=True, key=chart_key)
+                st.success("✅ Profit margin chart active")
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            elif st.session_state.current_chart_type == "customer_pie":
+                st.markdown('<div class="chart-section">', unsafe_allow_html=True)
+                st.subheader("🥧 Customer Revenue Distribution")
+                
+                labels = ['ABC Trading Sdn Bhd', 'XYZ Manufacturing', 'DEF Industries', 'GHI Solutions', 'Others']
+                values = [45000, 38000, 25000, 17430, 4570]
+                colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+                
+                fig = go.Figure(data=[go.Pie(
+                    labels=labels, 
+                    values=values, 
+                    hole=.3, 
+                    marker_colors=colors,
+                    textinfo='label+percent'
+                )])
+                
+                fig.update_layout(
+                    title="Customer Revenue Distribution",
+                    template="plotly_dark",
+                    height=500
+                )
+                
+                st.plotly_chart(fig, use_container_width=True, key=chart_key)
+                st.success("✅ Customer pie chart active")
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            elif st.session_state.current_chart_type == "expense_pie":
+                st.markdown('<div class="chart-section">', unsafe_allow_html=True)
+                st.subheader("💰 Expense Breakdown")
+                
+                expense_data = st.session_state.business_data['expenses_breakdown']
+                labels = list(expense_data.keys())
+                values = list(expense_data.values())
+                colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8']
+                
+                fig = go.Figure(data=[go.Pie(
+                    labels=labels,
+                    values=values,
+                    hole=.3,
+                    marker_colors=colors,
+                    textinfo='label+percent'
+                )])
+                
+                fig.update_layout(
+                    title="Operating Expense Breakdown",
+                    template="plotly_dark",
+                    height=500
+                )
+                
+                st.plotly_chart(fig, use_container_width=True, key=chart_key)
+                st.success("✅ Expense breakdown chart active")
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            elif st.session_state.current_chart_type == "regional_bar":
+                st.markdown('<div class="chart-section">', unsafe_allow_html=True)
+                st.subheader("🌏 Regional Revenue")
+                
+                regions = ['KL', 'Selangor', 'Penang', 'Johor', 'Others']
+                regional_revenue = [45000, 35000, 25000, 15000, 10000]
+                colors = ['#00D4AA', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+                
+                fig = go.Figure(data=[go.Bar(
+                    x=regions,
+                    y=regional_revenue,
+                    marker_color=colors
+                )])
+                
+                fig.update_layout(
+                    title="Revenue by Region",
+                    xaxis_title="Region",
+                    yaxis_title="Revenue (RM)",
+                    template="plotly_dark",
+                    height=450
+                )
+                
+                st.plotly_chart(fig, use_container_width=True, key=chart_key)
+                st.success("✅ Regional bar chart active")
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            else:  # revenue_trend
+                st.markdown('<div class="chart-section">', unsafe_allow_html=True)
+                st.subheader("📈 Revenue, Expenses & Profit Trends")
+                
+                months = ['Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024', 'Jan 2025']
+                revenue = [95000, 105000, 98000, 125000, 118000, 130000]
+                expenses = [78000, 82000, 85000, 89000, 91000, 88000]
+                profit = [17000, 23000, 13000, 36000, 27000, 42000]
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=months, y=revenue, mode='lines+markers', name='Revenue', 
+                                       line=dict(color='#00D4AA', width=3), marker=dict(size=8)))
+                fig.add_trace(go.Scatter(x=months, y=expenses, mode='lines+markers', name='Expenses', 
+                                       line=dict(color='#FF6B6B', width=3), marker=dict(size=8)))
+                fig.add_trace(go.Scatter(x=months, y=profit, mode='lines+markers', name='Profit', 
+                                       line=dict(color='#4ECDC4', width=3), marker=dict(size=8)))
+                
+                fig.update_layout(
+                    title="Revenue, Expenses & Profit Trends (Aug 2024 - Jan 2025)",
+                    xaxis_title="Month",
+                    yaxis_title="Amount (RM)",
+                    template="plotly_dark",
+                    height=450
+                )
+                
+                st.plotly_chart(fig, use_container_width=True, key=chart_key)
+                st.success("✅ Multi-line trend chart active")
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+        except Exception as e:
+            st.error(f"❌ Chart display failed: {e}")
+    
+    # Chat history display - NO CHARTS HERE
     st.markdown("### 💬 Conversation")
     for message in st.session_state.chat_history:
         if message["role"] == "user":
             st.markdown(f"**You:** {message['content']}")
         else:
-            # Check if this response has a chart request
+            # Show AI response but NO chart creation here
             if "CHART_REQUEST:" in message['content']:
-                # Show the clean response (without CHART_REQUEST line)
+                # Show clean response without CHART_REQUEST line
                 clean_content = '\n'.join([line for line in message['content'].split('\n') if not line.startswith('CHART_REQUEST:')])
                 st.markdown(f"**AI Assistant:** {clean_content}")
                 
-                # Auto-create the chart
+                # Set up chart to display in the separate chart section above
                 chart_type = parse_chart_request(message['content'])
                 if chart_type:
-                    create_and_show_chart(chart_type)
+                    st.session_state.show_chart = True
+                    st.session_state.current_chart_type = chart_type
+                    st.session_state.chart_displayed = int(time.time())
             else:
                 st.markdown(f"**AI Assistant:** {message['content']}")
     
@@ -644,19 +645,23 @@ elif page == "Analytics":
     
     with col1:
         if st.button("📈 Profit Margins", key="profit_btn"):
-            create_and_show_chart('profit_margin')
+            activate_chart('profit_margin')
+            st.rerun()
     
     with col2:
         if st.button("🥧 Customer Distribution", key="customer_btn"):
-            create_and_show_chart('customer_pie')
+            activate_chart('customer_pie')
+            st.rerun()
     
     with col3:
         if st.button("💰 Expense Breakdown", key="expense_btn"):
-            create_and_show_chart('expense_pie')
+            activate_chart('expense_pie')
+            st.rerun()
     
     with col4:
         if st.button("🌏 Regional Revenue", key="regional_btn"):
-            create_and_show_chart('regional_bar')
+            activate_chart('regional_bar')
+            st.rerun()
 
 elif page == "Data Viewer":
     st.header("📋 Demo Data Viewer")
