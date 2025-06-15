@@ -231,39 +231,179 @@ class TrulyDynamicChartEngine:
         
         return fig, description, chart_spec
 
-# AI Response Engine
+# Enhanced AI Response Engine
 class SmartAIEngine:
     def __init__(self, data):
         self.data = data
     
     def get_response(self, question):
-        """Generate contextual AI response"""
+        """Generate rich, contextual AI business analysis"""
         question_lower = question.lower()
         
-        # Revenue-specific responses
+        # Advanced Revenue Analysis
         if 'revenue' in question_lower and 'expense' not in question_lower:
             current_revenue = self.data['monthly_data']['revenue'][-1]
-            growth = ((current_revenue / self.data['monthly_data']['revenue'][-2]) - 1) * 100
-            return f"📈 Revenue Analysis: Current month revenue is RM {current_revenue:,}, up {growth:.1f}% from last month. Revenue has grown {((current_revenue / self.data['monthly_data']['revenue'][0]) - 1) * 100:.1f}% over the past 6 months!"
+            prev_revenue = self.data['monthly_data']['revenue'][-2]
+            growth = ((current_revenue / prev_revenue) - 1) * 100
+            six_month_growth = ((current_revenue / self.data['monthly_data']['revenue'][0]) - 1) * 100
+            avg_revenue = sum(self.data['monthly_data']['revenue']) / len(self.data['monthly_data']['revenue'])
+            
+            return f"""📈 **Revenue Deep Analysis:**
+            
+**Current Performance:** RM {current_revenue:,} (+{growth:.1f}% MoM)
+**6-Month Growth:** {six_month_growth:.1f}% (RM {current_revenue - self.data['monthly_data']['revenue'][0]:,} increase)
+**Average Monthly:** RM {avg_revenue:,.0f}
+**Peak Month:** {self.data['monthly_data']['months'][self.data['monthly_data']['revenue'].index(max(self.data['monthly_data']['revenue']))]} (RM {max(self.data['monthly_data']['revenue']):,})
+
+**💡 Strategic Insights:**
+• Revenue trajectory is strongly upward - excellent momentum
+• Current month is {((current_revenue/avg_revenue-1)*100):+.1f}% above 6-month average
+• Growth acceleration suggests successful business strategies
+• Recommend: Capitalize on momentum with increased marketing investment"""
         
-        # Profit-specific responses  
+        # Advanced Profit Analysis
         elif 'profit' in question_lower and 'margin' not in question_lower:
             current_profit = self.data['monthly_data']['profit'][-1]
-            return f"💰 Profit Analysis: Current month net profit is RM {current_profit:,}. Your profit has grown significantly - from RM 17k in Aug to RM 42k in Jan, that's a {((current_profit / self.data['monthly_data']['profit'][0]) - 1) * 100:.0f}% increase!"
+            profit_growth = ((current_profit / self.data['monthly_data']['profit'][0]) - 1) * 100
+            current_revenue = self.data['monthly_data']['revenue'][-1]
+            current_expenses = self.data['monthly_data']['expenses'][-1]
+            
+            return f"""💰 **Profit Deep Analysis:**
+            
+**Current Net Profit:** RM {current_profit:,}
+**6-Month Growth:** {profit_growth:.0f}% (RM {current_profit - self.data['monthly_data']['profit'][0]:,} increase)
+**Profit Velocity:** +RM {(current_profit - self.data['monthly_data']['profit'][0])/6:,.0f} per month average
+**ROI Trend:** Accelerating upward
+
+**💡 Strategic Insights:**
+• Exceptional profit growth - outpacing revenue growth indicates improving efficiency
+• Current profit represents {(current_profit/current_revenue*100):.1f}% of revenue (healthy margin)
+• Expense control excellent: RM {current_expenses:,} vs RM {current_revenue:,} revenue
+• Recommendation: Consider profit reinvestment for growth acceleration"""
         
-        # Profit margin responses
-        elif 'profit margin' in question_lower or 'margin' in question_lower:
+        # Advanced Profit Margin Analysis
+        elif 'profit margin' in question_lower or ('margin' in question_lower and 'profit' in question_lower):
             current_margin = self.data['monthly_data']['profit_margin'][-1]
-            return f"📊 Profit Margin Analysis: Current margin is {current_margin}%, up from 17.9% in August. This shows excellent operational efficiency improvements!"
+            margin_improvement = current_margin - self.data['monthly_data']['profit_margin'][0]
+            best_margin_month = self.data['monthly_data']['months'][self.data['monthly_data']['profit_margin'].index(max(self.data['monthly_data']['profit_margin']))]
+            
+            return f"""📊 **Profit Margin Deep Analysis:**
+            
+**Current Margin:** {current_margin}%
+**Improvement:** +{margin_improvement:.1f} percentage points since August
+**Best Performance:** {best_margin_month} ({max(self.data['monthly_data']['profit_margin'])}%)
+**Industry Benchmark:** Exceeding typical SME margins (15-25%)
+
+**💡 Strategic Insights:**
+• Outstanding margin improvement trajectory - operational excellence
+• {current_margin}% margin puts you in top quartile of Malaysian SMEs
+• Margin growth shows pricing power and cost discipline
+• Risk Alert: Monitor for margin sustainability as you scale
+• Opportunity: Margin leadership creates competitive moat"""
         
-        # Customer responses
-        elif 'customer' in question_lower:
-            top_customer_revenue = max(self.data['customers']['revenue'])
-            return f"👥 Customer Analysis: ABC Trading is your top customer with RM {top_customer_revenue:,} revenue. Your top 3 customers contribute {(sum(self.data['customers']['revenue'][:3]) / sum(self.data['customers']['revenue']) * 100):.0f}% of total revenue."
+        # Advanced Customer Analysis
+        elif 'customer' in question_lower or 'client' in question_lower:
+            top_customers = sorted(zip(self.data['customers']['names'], self.data['customers']['revenue'], self.data['customers']['margin']), 
+                                 key=lambda x: x[1], reverse=True)
+            total_customer_revenue = sum(self.data['customers']['revenue'])
+            top_3_revenue = sum([x[1] for x in top_customers[:3]])
+            concentration_risk = (top_3_revenue / total_customer_revenue) * 100
+            
+            return f"""👥 **Customer Portfolio Deep Analysis:**
+            
+**Top Customer:** {top_customers[0][0]} - RM {top_customers[0][1]:,} ({top_customers[0][2]}% margin)
+**#2 Customer:** {top_customers[1][0]} - RM {top_customers[1][1]:,} ({top_customers[1][2]}% margin)  
+**#3 Customer:** {top_customers[2][0]} - RM {top_customers[2][1]:,} ({top_customers[2][2]}% margin)
+**Customer Concentration:** {concentration_risk:.0f}% in top 3 clients
+
+**💡 Strategic Insights:**
+• **Risk Alert:** {concentration_risk:.0f}% revenue concentration creates vulnerability
+• Top customer profitability varies: {min([x[2] for x in top_customers[:3]])}%-{max([x[2] for x in top_customers[:3]])}% margins
+• Revenue diversification opportunity: Develop 2-3 more mid-size clients
+• Customer lifetime value optimization potential in lower-margin accounts
+• Recommend: Implement customer retention programs for top 3 clients"""
         
-        # Default response
+        # Advanced Expense Analysis
+        elif 'expense' in question_lower or 'cost' in question_lower:
+            total_expenses = sum(self.data['expenses']['amounts'])
+            current_revenue = self.data['monthly_data']['revenue'][-1]
+            expense_ratio = (total_expenses / current_revenue) * 100
+            largest_expense = max(zip(self.data['expenses']['categories'], self.data['expenses']['amounts']), key=lambda x: x[1])
+            
+            return f"""💸 **Expense Deep Analysis:**
+            
+**Total Monthly Expenses:** RM {total_expenses:,}
+**Expense Ratio:** {expense_ratio:.1f}% of revenue (excellent control)
+**Largest Category:** {largest_expense[0]} - RM {largest_expense[1]:,} ({(largest_expense[1]/total_expenses*100):.1f}% of total)
+**Cost Structure:** Variable vs Fixed ratio optimized
+
+**💡 Strategic Insights:**
+• Expense discipline excellent: {expense_ratio:.1f}% ratio vs industry avg 75-85%
+• Staff costs at RM 35k represents investment in talent (positive signal)
+• Marketing spend RM 15k shows growth focus - monitor ROI closely
+• Opportunity: Utility costs RM 8k - energy audit could save 15-20%
+• Scale advantage: Fixed costs will dilute as revenue grows"""
+        
+        # General Business Health Analysis
+        elif any(word in question_lower for word in ['performance', 'business', 'health', 'analysis', 'how am i doing']):
+            current_revenue = self.data['monthly_data']['revenue'][-1]
+            current_profit = self.data['monthly_data']['profit'][-1]
+            current_margin = self.data['monthly_data']['profit_margin'][-1]
+            revenue_growth = ((current_revenue / self.data['monthly_data']['revenue'][0]) - 1) * 100
+            
+            return f"""🚀 **Comprehensive Business Health Analysis:**
+            
+**Financial Scorecard:**
+• Revenue: RM {current_revenue:,} (+{revenue_growth:.1f}% growth) ✅ Excellent
+• Net Profit: RM {current_profit:,} ✅ Strong  
+• Profit Margin: {current_margin}% ✅ Outstanding
+• Cash Generation: RM {current_profit:,}/month ✅ Healthy
+
+**Key Strengths:**
+✅ Revenue momentum accelerating
+✅ Profit margins expanding (rare combination)
+✅ Expense discipline maintained
+✅ Strong customer base with growth potential
+
+**Strategic Priorities:**
+🎯 **Immediate (30 days):** Customer diversification planning
+🎯 **Short-term (90 days):** Scale marketing while maintaining margins  
+🎯 **Medium-term (180 days):** Geographic/product expansion evaluation
+
+**Competitive Position:** Top quartile performance vs Malaysian SME benchmarks"""
+        
+        # Cash Flow Analysis
+        elif 'cash' in question_lower or 'flow' in question_lower:
+            current_profit = self.data['monthly_data']['profit'][-1]
+            avg_profit = sum(self.data['monthly_data']['profit']) / len(self.data['monthly_data']['profit'])
+            next_month_projection = current_profit * 1.06  # 6% growth assumption
+            
+            return f"""💰 **Cash Flow Deep Analysis:**
+            
+**Current Cash Generation:** RM {current_profit:,}/month
+**6-Month Average:** RM {avg_profit:,.0f}/month  
+**Next Month Projection:** RM {next_month_projection:,.0f}
+**Quarterly Outlook:** RM {next_month_projection*3:,.0f}
+
+**💡 Strategic Cash Insights:**
+• Strong positive cash flow trend - excellent liquidity position
+• Cash generation rate improving: +RM {(current_profit - avg_profit):,.0f} above average
+• Recommendation: Set aside RM {next_month_projection*0.3:,.0f} for growth investments
+• Consider: Equipment financing for expansion (leverage cheap capital)
+• Opportunity: Excess cash earning potential through business reinvestment"""
+        
+        # Default comprehensive response
         else:
-            return f"🤖 I've analyzed your request and created the chart below. Your business shows strong performance with RM {self.data['monthly_data']['revenue'][-1]:,} current revenue!"
+            return f"""🤖 **AI Business Intelligence Summary:**
+            
+**Current Performance Snapshot:**
+• Revenue: RM {self.data['monthly_data']['revenue'][-1]:,} (Strong momentum)
+• Profitability: {self.data['monthly_data']['profit_margin'][-1]}% margin (Excellent)
+• Growth Rate: {((self.data['monthly_data']['revenue'][-1]/self.data['monthly_data']['revenue'][0])-1)*100:.1f}% over 6 months
+
+**Key Insight:** Your business fundamentals are exceptionally strong. Revenue growth with expanding margins is a rare and valuable combination that indicates both market demand and operational excellence.
+
+**Next Steps:** Consider strategic growth investments while maintaining your competitive advantages."""
 
 # Main App
 def main():
