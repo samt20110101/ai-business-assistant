@@ -87,8 +87,30 @@ class TrulyDynamicChartEngine:
             'title': '',
             'description': '',
             'time_filter': None,  # New: for date filtering
-            'comparison_months': []  # New: for specific month comparisons
+            'comparison_months': [],  # New: for specific month comparisons
+            'is_modification': False,  # New: for chart modifications
+            'modification_type': None,  # New: type of modification
+            'secondary_axis': []  # New: for secondary axis metrics
         }
+        
+        # Check if this is a chart modification request
+        modification_keywords = ['also', 'add', 'include', 'plus', 'with', 'and also', 'can you also']
+        if any(keyword in request_lower for keyword in modification_keywords):
+            chart_spec['is_modification'] = True
+            
+            # Determine what to add
+            if any(word in request_lower for word in ['profit margin', 'margin']):
+                chart_spec['modification_type'] = 'add_secondary_axis'
+                chart_spec['secondary_axis'] = ['profit_margin']
+            elif 'profit' in request_lower and 'margin' not in request_lower:
+                chart_spec['modification_type'] = 'add_metric'
+                chart_spec['y_axis'] = ['profit']
+            elif 'revenue' in request_lower:
+                chart_spec['modification_type'] = 'add_metric'
+                chart_spec['y_axis'] = ['revenue']
+            elif 'expense' in request_lower:
+                chart_spec['modification_type'] = 'add_metric'
+                chart_spec['y_axis'] = ['expenses']
         
         # Check for specific month/time filtering
         months_mentioned = []
@@ -119,56 +141,58 @@ class TrulyDynamicChartEngine:
         elif 'last 2 months' in request_lower or 'past 2 months' in request_lower:
             chart_spec['time_filter'] = self.data['monthly_data']['months'][-2:]
         
-        # Determine data source and variables
-        if any(word in request_lower for word in ['customer', 'client']):
-            chart_spec['data_source'] = 'customers'
-            chart_spec['x_axis'] = 'names'
-            
-            if any(word in request_lower for word in ['revenue', 'sales', 'income']):
-                chart_spec['y_axis'] = ['revenue']
-            elif any(word in request_lower for word in ['margin', 'profit margin']):
-                chart_spec['y_axis'] = ['margin']
-            else:
-                chart_spec['y_axis'] = ['revenue']  # default
+        # If not a modification, proceed with normal analysis
+        if not chart_spec['is_modification']:
+            # Determine data source and variables
+            if any(word in request_lower for word in ['customer', 'client']):
+                chart_spec['data_source'] = 'customers'
+                chart_spec['x_axis'] = 'names'
                 
-        elif any(word in request_lower for word in ['expense breakdown', 'cost breakdown', 'expense categories', 'cost categories']) and not any(word in request_lower for word in ['revenue', 'profit']):
-            # Only expense breakdown when specifically asked and no other metrics mentioned
-            chart_spec['data_source'] = 'expenses'
-            chart_spec['x_axis'] = 'categories'
-            chart_spec['y_axis'] = ['amounts']
-            
-        elif any(word in request_lower for word in ['region', 'area', 'location', 'geographic']):
-            chart_spec['data_source'] = 'regions'
-            chart_spec['x_axis'] = 'names'
-            chart_spec['y_axis'] = ['revenue']
-            
-        else:
-            # Monthly data (revenue, profit, expenses, etc.) - DEFAULT CASE
-            chart_spec['data_source'] = 'monthly_data'
-            chart_spec['x_axis'] = 'months'
-            
-            # Smart detection of multiple metrics in one request
-            metrics_requested = []
-            
-            if any(word in request_lower for word in ['revenue', 'sales', 'income']):
-                metrics_requested.append('revenue')
-            
-            if any(word in request_lower for word in ['expense', 'cost', 'spending']) and 'breakdown' not in request_lower:
-                metrics_requested.append('expenses')
-            
-            if any(word in request_lower for word in ['profit margin', 'margin']) and 'net profit' not in request_lower:
-                metrics_requested.append('profit_margin')
-            elif any(word in request_lower for word in ['profit', 'net profit']) and 'margin' not in request_lower:
-                metrics_requested.append('profit')
-            
-            # If multiple metrics detected, use them all
-            if len(metrics_requested) > 1:
-                chart_spec['y_axis'] = metrics_requested
-            elif len(metrics_requested) == 1:
-                chart_spec['y_axis'] = metrics_requested
-            else:
-                # Default to revenue if nothing specific mentioned
+                if any(word in request_lower for word in ['revenue', 'sales', 'income']):
+                    chart_spec['y_axis'] = ['revenue']
+                elif any(word in request_lower for word in ['margin', 'profit margin']):
+                    chart_spec['y_axis'] = ['margin']
+                else:
+                    chart_spec['y_axis'] = ['revenue']  # default
+                    
+            elif any(word in request_lower for word in ['expense breakdown', 'cost breakdown', 'expense categories', 'cost categories']) and not any(word in request_lower for word in ['revenue', 'profit']):
+                # Only expense breakdown when specifically asked and no other metrics mentioned
+                chart_spec['data_source'] = 'expenses'
+                chart_spec['x_axis'] = 'categories'
+                chart_spec['y_axis'] = ['amounts']
+                
+            elif any(word in request_lower for word in ['region', 'area', 'location', 'geographic']):
+                chart_spec['data_source'] = 'regions'
+                chart_spec['x_axis'] = 'names'
                 chart_spec['y_axis'] = ['revenue']
+                
+            else:
+                # Monthly data (revenue, profit, expenses, etc.) - DEFAULT CASE
+                chart_spec['data_source'] = 'monthly_data'
+                chart_spec['x_axis'] = 'months'
+                
+                # Smart detection of multiple metrics in one request
+                metrics_requested = []
+                
+                if any(word in request_lower for word in ['revenue', 'sales', 'income']):
+                    metrics_requested.append('revenue')
+                
+                if any(word in request_lower for word in ['expense', 'cost', 'spending']) and 'breakdown' not in request_lower:
+                    metrics_requested.append('expenses')
+                
+                if any(word in request_lower for word in ['profit margin', 'margin']) and 'net profit' not in request_lower:
+                    metrics_requested.append('profit_margin')
+                elif any(word in request_lower for word in ['profit', 'net profit']) and 'margin' not in request_lower:
+                    metrics_requested.append('profit')
+                
+                # If multiple metrics detected, use them all
+                if len(metrics_requested) > 1:
+                    chart_spec['y_axis'] = metrics_requested
+                elif len(metrics_requested) == 1:
+                    chart_spec['y_axis'] = metrics_requested
+                else:
+                    # Default to revenue if nothing specific mentioned
+                    chart_spec['y_axis'] = ['revenue']
         
         # Determine chart type
         if any(word in request_lower for word in ['pie', 'donut', 'distribution', 'breakdown']):
@@ -216,9 +240,19 @@ class TrulyDynamicChartEngine:
         
         return data_source
     
-    def create_dynamic_chart(self, chart_spec):
+    def create_dynamic_chart(self, chart_spec, previous_chart_config=None):
         """Create chart based on the analyzed specification"""
         data_source = self.data[chart_spec['data_source']]
+        
+        # Handle chart modifications
+        if chart_spec['is_modification'] and previous_chart_config:
+            if chart_spec['modification_type'] == 'add_secondary_axis':
+                return self.create_chart_with_secondary_axis(previous_chart_config, chart_spec)
+            elif chart_spec['modification_type'] == 'add_metric':
+                # Add metric to existing chart
+                previous_chart_config['y_axis'].extend(chart_spec['y_axis'])
+                chart_spec = previous_chart_config
+                chart_spec['y_axis'] = list(set(chart_spec['y_axis']))  # Remove duplicates
         
         # Apply time filtering for monthly data
         if chart_spec['data_source'] == 'monthly_data':
@@ -333,6 +367,82 @@ class TrulyDynamicChartEngine:
         
         if chart_spec['time_filter']:
             description += f" filtered to {len(chart_spec['time_filter'])} months: {', '.join(chart_spec['time_filter'])}"
+        elif chart_spec['comparison_months']:
+            description += f" comparing {', '.join(chart_spec['comparison_months'])}"
+        
+        return fig, description, chart_spec
+    
+    def create_chart_with_secondary_axis(self, previous_config, new_spec):
+        """Create chart with secondary axis for profit margin"""
+        data_source = self.data[previous_config['data_source']]
+        
+        # Apply time filtering
+        if previous_config['time_filter'] or previous_config['comparison_months']:
+            data_source = self.filter_monthly_data(
+                data_source, 
+                previous_config['time_filter'], 
+                previous_config['comparison_months']
+            )
+        
+        # Create figure with secondary y-axis
+        fig = go.Figure()
+        
+        # Add primary metrics
+        colors = ['#00D4AA', '#FF6B6B', '#4ECDC4']
+        for i, y_metric in enumerate(previous_config['y_axis']):
+            fig.add_trace(go.Scatter(
+                x=data_source[previous_config['x_axis']],
+                y=data_source[y_metric],
+                mode='lines+markers',
+                name=y_metric.replace('_', ' ').title(),
+                line=dict(color=colors[i % len(colors)], width=3),
+                marker=dict(size=8),
+                yaxis='y'
+            ))
+        
+        # Add secondary axis metric (profit margin)
+        for secondary_metric in new_spec['secondary_axis']:
+            fig.add_trace(go.Scatter(
+                x=data_source[previous_config['x_axis']],
+                y=data_source[secondary_metric],
+                mode='lines+markers',
+                name=secondary_metric.replace('_', ' ').title(),
+                line=dict(color='#FFD700', width=3, dash='dot'),
+                marker=dict(size=8, symbol='diamond'),
+                yaxis='y2'
+            ))
+        
+        # Update layout with secondary y-axis
+        primary_labels = [y.replace('_', ' ').title() for y in previous_config['y_axis']]
+        secondary_labels = [y.replace('_', ' ').title() for y in new_spec['secondary_axis']]
+        
+        time_period = ""
+        if previous_config['time_filter']:
+            time_period = f" ({', '.join(previous_config['time_filter'])})"
+        
+        fig.update_layout(
+            title=f"📈 {' & '.join(primary_labels)} + {' & '.join(secondary_labels)} (Secondary Axis){time_period}",
+            template="plotly_white",
+            height=400,
+            showlegend=True,
+            yaxis=dict(
+                title=' & '.join(primary_labels),
+                side='left'
+            ),
+            yaxis2=dict(
+                title=' & '.join(secondary_labels) + ' (%)',
+                side='right',
+                overlaying='y'
+            )
+        )
+        
+        description = f"Dual-axis chart: {', '.join(primary_labels)} (left axis) + {', '.join(secondary_labels)} (right axis)"
+        
+        # Merge configurations
+        merged_config = previous_config.copy()
+        merged_config['secondary_axis'] = new_spec['secondary_axis']
+        
+        return fig, description, merged_configfilter'])}"
         elif chart_spec['comparison_months']:
             description += f" comparing {', '.join(chart_spec['comparison_months'])}"
         
@@ -528,6 +638,13 @@ def main():
             {"role": "assistant", "content": "👋 Hello! I create charts based on exactly what you ask for. Try: 'revenue chart', 'customer pie chart', 'monthly profit', 'expense breakdown', etc."}
         ]
     
+    # Initialize chart memory
+    if 'current_chart_config' not in st.session_state:
+        st.session_state.current_chart_config = None
+    
+    if 'chart_history' not in st.session_state:
+        st.session_state.chart_history = []
+    
     # Sample data display
     with st.expander("📊 View Available Data"):
         col1, col2 = st.columns(2)
@@ -649,13 +766,28 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Create and display chart
-        chart_fig, chart_desc, chart_spec_updated = chart_engine.create_dynamic_chart(chart_spec)
+        chart_fig, chart_desc, chart_spec_updated = chart_engine.create_dynamic_chart(
+            chart_spec, 
+            st.session_state.current_chart_config if chart_spec.get('is_modification') else None
+        )
         
         st.markdown("### 📊 Generated Chart")
         st.markdown('<div class="chart-container">', unsafe_allow_html=True)
         st.plotly_chart(chart_fig, use_container_width=True)
         st.success(f"✅ {chart_desc}")
         st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Store current chart configuration for future modifications
+        st.session_state.current_chart_config = chart_spec_updated
+        st.session_state.chart_history.append({
+            'request': request,
+            'config': chart_spec_updated,
+            'description': chart_desc
+        })
+        
+        # Show modification tips if this was a new chart
+        if not chart_spec.get('is_modification'):
+            st.info("💡 **Tip:** You can now modify this chart! Try: 'also include profit margin', 'add revenue to this', etc.")
         
         # Clear the chart flag after displaying
         st.session_state.show_chart = False
