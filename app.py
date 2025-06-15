@@ -370,7 +370,7 @@ class TrulyDynamicChartEngine:
         elif chart_spec['comparison_months']:
             description += f" comparing {', '.join(chart_spec['comparison_months'])}"
         
-        return fig, description, chart_specfilter'])}"
+        return fig, description, chart_spec
         elif chart_spec['comparison_months']:
             description += f" comparing {', '.join(chart_spec['comparison_months'])}"
         
