@@ -85,8 +85,39 @@ class TrulyDynamicChartEngine:
             'x_axis': None,
             'y_axis': [],
             'title': '',
-            'description': ''
+            'description': '',
+            'time_filter': None,  # New: for date filtering
+            'comparison_months': []  # New: for specific month comparisons
         }
+        
+        # Check for specific month/time filtering
+        months_mentioned = []
+        
+        # Extract specific months mentioned
+        month_patterns = {
+            'jan': 'Jan 2025', 'january': 'Jan 2025',
+            'dec': 'Dec 2024', 'december': 'Dec 2024', 
+            'nov': 'Nov 2024', 'november': 'Nov 2024',
+            'oct': 'Oct 2024', 'october': 'Oct 2024',
+            'sep': 'Sep 2024', 'september': 'Sep 2024',
+            'aug': 'Aug 2024', 'august': 'Aug 2024'
+        }
+        
+        for month_key, month_value in month_patterns.items():
+            if month_key in request_lower:
+                months_mentioned.append(month_value)
+        
+        # Check for comparison keywords
+        if any(word in request_lower for word in ['compare', 'vs', 'versus', 'against']):
+            chart_spec['comparison_months'] = months_mentioned
+        elif len(months_mentioned) > 0:
+            chart_spec['time_filter'] = months_mentioned
+        
+        # Check for "last X months" patterns
+        if 'last 3 months' in request_lower or 'past 3 months' in request_lower:
+            chart_spec['time_filter'] = self.data['monthly_data']['months'][-3:]
+        elif 'last 2 months' in request_lower or 'past 2 months' in request_lower:
+            chart_spec['time_filter'] = self.data['monthly_data']['months'][-2:]
         
         # Determine data source and variables
         if any(word in request_lower for word in ['customer', 'client']):
@@ -140,17 +171,54 @@ class TrulyDynamicChartEngine:
         elif any(word in request_lower for word in ['area', 'filled']):
             chart_spec['chart_type'] = 'area'
         else:
-            # Smart default based on data
-            if chart_spec['data_source'] in ['customers', 'expenses', 'regions'] and len(chart_spec['y_axis']) == 1:
+            # Smart default based on data and filtering
+            if chart_spec['comparison_months'] or chart_spec['time_filter']:
+                chart_spec['chart_type'] = 'bar'  # Better for comparisons
+            elif chart_spec['data_source'] in ['customers', 'expenses', 'regions'] and len(chart_spec['y_axis']) == 1:
                 chart_spec['chart_type'] = 'pie'
             else:
                 chart_spec['chart_type'] = 'line'
         
         return chart_spec
     
+    def filter_monthly_data(self, data_source, time_filter=None, comparison_months=None):
+        """Filter monthly data based on time specifications"""
+        if time_filter:
+            # Filter to specific months
+            filtered_indices = [i for i, month in enumerate(data_source['months']) if month in time_filter]
+            filtered_data = {}
+            for key, values in data_source.items():
+                if isinstance(values, list) and len(values) == len(data_source['months']):
+                    filtered_data[key] = [values[i] for i in filtered_indices]
+                else:
+                    filtered_data[key] = values
+            return filtered_data
+        
+        elif comparison_months:
+            # Filter to comparison months only
+            filtered_indices = [i for i, month in enumerate(data_source['months']) if month in comparison_months]
+            filtered_data = {}
+            for key, values in data_source.items():
+                if isinstance(values, list) and len(values) == len(data_source['months']):
+                    filtered_data[key] = [values[i] for i in filtered_indices]
+                else:
+                    filtered_data[key] = values
+            return filtered_data
+        
+        return data_source
+    
     def create_dynamic_chart(self, chart_spec):
         """Create chart based on the analyzed specification"""
         data_source = self.data[chart_spec['data_source']]
+        
+        # Apply time filtering for monthly data
+        if chart_spec['data_source'] == 'monthly_data':
+            if chart_spec['time_filter'] or chart_spec['comparison_months']:
+                data_source = self.filter_monthly_data(
+                    data_source, 
+                    chart_spec['time_filter'], 
+                    chart_spec['comparison_months']
+                )
         
         if chart_spec['chart_type'] == 'pie':
             # Create pie chart
@@ -179,7 +247,18 @@ class TrulyDynamicChartEngine:
                 fig = px.bar(df, x=chart_spec['x_axis'], y=chart_spec['y_axis'])
             
             y_labels = [y.replace('_', ' ').title() for y in chart_spec['y_axis']]
-            title = f"📊 {' & '.join(y_labels)} by {chart_spec['x_axis'].replace('_', ' ').title()}"
+            
+            # Add time period to title if filtered
+            time_period = ""
+            if chart_spec['time_filter']:
+                if len(chart_spec['time_filter']) == 2:
+                    time_period = f" ({chart_spec['time_filter'][0]} vs {chart_spec['time_filter'][1]})"
+                else:
+                    time_period = f" ({', '.join(chart_spec['time_filter'])})"
+            elif chart_spec['comparison_months']:
+                time_period = f" ({' vs '.join(chart_spec['comparison_months'])})"
+            
+            title = f"📊 {' & '.join(y_labels)} by {chart_spec['x_axis'].replace('_', ' ').title()}{time_period}"
             
         elif chart_spec['chart_type'] == 'line':
             # Create line chart
@@ -197,7 +276,15 @@ class TrulyDynamicChartEngine:
                 ))
             
             y_labels = [y.replace('_', ' ').title() for y in chart_spec['y_axis']]
-            title = f"📈 {' & '.join(y_labels)} Trends"
+            
+            # Add time period to title if filtered
+            time_period = ""
+            if chart_spec['time_filter']:
+                time_period = f" ({', '.join(chart_spec['time_filter'])})"
+            elif chart_spec['comparison_months']:
+                time_period = f" ({' vs '.join(chart_spec['comparison_months'])})"
+            
+            title = f"📈 {' & '.join(y_labels)} Trends{time_period}"
             
         elif chart_spec['chart_type'] == 'area':
             # Create area chart
@@ -215,7 +302,13 @@ class TrulyDynamicChartEngine:
                 ))
             
             y_labels = [y.replace('_', ' ').title() for y in chart_spec['y_axis']]
-            title = f"📊 {' & '.join(y_labels)} Area Chart"
+            
+            # Add time period to title if filtered
+            time_period = ""
+            if chart_spec['time_filter']:
+                time_period = f" ({', '.join(chart_spec['time_filter'])})"
+            
+            title = f"📊 {' & '.join(y_labels)} Area Chart{time_period}"
         
         # Update layout
         fig.update_layout(
@@ -225,9 +318,14 @@ class TrulyDynamicChartEngine:
             showlegend=len(chart_spec['y_axis']) > 1
         )
         
-        # Create description
+        # Create description with filtering info
         y_labels = [y.replace('_', ' ') for y in chart_spec['y_axis']]
         description = f"{chart_spec['chart_type'].title()} chart showing {', '.join(y_labels)} by {chart_spec['x_axis'].replace('_', ' ')}"
+        
+        if chart_spec['time_filter']:
+            description += f" filtered to {len(chart_spec['time_filter'])} months: {', '.join(chart_spec['time_filter'])}"
+        elif chart_spec['comparison_months']:
+            description += f" comparing {', '.join(chart_spec['comparison_months'])}"
         
         return fig, description, chart_spec
 
