@@ -131,7 +131,8 @@ class TrulyDynamicChartEngine:
             else:
                 chart_spec['y_axis'] = ['revenue']  # default
                 
-        elif any(word in request_lower for word in ['expense', 'cost', 'spending']):
+        elif any(word in request_lower for word in ['expense breakdown', 'cost breakdown', 'expense categories', 'cost categories']) and not any(word in request_lower for word in ['revenue', 'profit']):
+            # Only expense breakdown when specifically asked and no other metrics mentioned
             chart_spec['data_source'] = 'expenses'
             chart_spec['x_axis'] = 'categories'
             chart_spec['y_axis'] = ['amounts']
@@ -142,23 +143,31 @@ class TrulyDynamicChartEngine:
             chart_spec['y_axis'] = ['revenue']
             
         else:
-            # Monthly data (revenue, profit, expenses, etc.)
+            # Monthly data (revenue, profit, expenses, etc.) - DEFAULT CASE
             chart_spec['data_source'] = 'monthly_data'
             chart_spec['x_axis'] = 'months'
             
-            # Determine which metrics to show
-            if 'revenue' in request_lower and 'expense' not in request_lower:
-                chart_spec['y_axis'] = ['revenue']
-            elif 'expense' in request_lower and 'revenue' not in request_lower:
-                chart_spec['y_axis'] = ['expenses']
-            elif any(word in request_lower for word in ['profit margin', 'margin']):
-                chart_spec['y_axis'] = ['profit_margin']
+            # Smart detection of multiple metrics in one request
+            metrics_requested = []
+            
+            if any(word in request_lower for word in ['revenue', 'sales', 'income']):
+                metrics_requested.append('revenue')
+            
+            if any(word in request_lower for word in ['expense', 'cost', 'spending']) and 'breakdown' not in request_lower:
+                metrics_requested.append('expenses')
+            
+            if any(word in request_lower for word in ['profit margin', 'margin']) and 'net profit' not in request_lower:
+                metrics_requested.append('profit_margin')
             elif any(word in request_lower for word in ['profit', 'net profit']) and 'margin' not in request_lower:
-                chart_spec['y_axis'] = ['profit']
-            elif 'revenue' in request_lower and 'expense' in request_lower:
-                chart_spec['y_axis'] = ['revenue', 'expenses']
+                metrics_requested.append('profit')
+            
+            # If multiple metrics detected, use them all
+            if len(metrics_requested) > 1:
+                chart_spec['y_axis'] = metrics_requested
+            elif len(metrics_requested) == 1:
+                chart_spec['y_axis'] = metrics_requested
             else:
-                # Default to revenue
+                # Default to revenue if nothing specific mentioned
                 chart_spec['y_axis'] = ['revenue']
         
         # Determine chart type
